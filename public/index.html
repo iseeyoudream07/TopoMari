@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#071014" />
+    <title>TopoMari</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css?v=2.4.0" />
+    <script type="module" src="/app.js?v=2.4.0"></script>
+  </head>
+  <body>
+    <div class="ambient ambient-a" aria-hidden="true"></div>
+    <div class="ambient ambient-b" aria-hidden="true"></div>
+
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M9 15.5 24 7l15 8.5v17L24 41 9 32.5z" />
+              <path d="m16 20 8-4.5L32 20v8l-8 4.5L16 28z" />
+              <path d="M24 15.5V7m0 34v-8.5M16 20 9 15.5M39 32.5 32 28" />
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">KOMARI NETWORK INTELLIGENCE</p>
+            <h1 id="page-title">TopoMari</h1>
+            <p id="page-subtitle" class="subtitle">Multi-hop latency and packet-loss visibility</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div id="source-chip" class="source-chip" data-mode="loading">
+            <span class="source-dot" aria-hidden="true"></span>
+            <span id="source-label">Connecting</span>
+          </div>
+          <button id="manager-toggle" class="refresh-button manager-toggle" type="button" hidden aria-expanded="false" aria-controls="topology-manager">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16M4 17h16M7 4v6M17 14v6" />
+            </svg>
+            <span>管理链路</span>
+          </button>
+          <button id="refresh-button" class="refresh-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 4v4h4M4 13a8.1 8.1 0 0 0 15.5 3M20 20v-4h-4" />
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="stats-grid" aria-label="Network overview">
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 18h16M6 15V9m6 6V5m6 10v-3" /></svg>
+            </div>
+            <div>
+              <p class="stat-label">Active routes</p>
+              <p id="stat-routes" class="stat-value">—</p>
+              <p id="stat-edges" class="stat-context">Waiting for data</p>
+            </div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="2" /><rect x="4" y="14" width="16" height="6" rx="2" /><path d="M8 7h.01M8 17h.01" /></svg>
+            </div>
+            <div>
+              <p class="stat-label">Nodes online</p>
+              <p id="stat-nodes" class="stat-value">—</p>
+              <p id="stat-node-context" class="stat-context">Waiting for data</p>
+            </div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
+            </div>
+            <div>
+              <p class="stat-label">Mean latency</p>
+              <p id="stat-latency" class="stat-value">—</p>
+              <p class="stat-context">Across configured links</p>
+            </div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7z" /><path d="m9 12 2 2 4-4" /></svg>
+            </div>
+            <div>
+              <p class="stat-label">Mean packet loss</p>
+              <p id="stat-loss" class="stat-value">—</p>
+              <p class="stat-context">Last configured history window</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="glass-panel topology-panel" aria-labelledby="topology-heading">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">LIVE PATH MATRIX</p>
+              <h2 id="topology-heading">Routing Topology <span>网络连通性</span></h2>
+            </div>
+            <p id="last-updated" class="updated-label">Awaiting first snapshot</p>
+          </div>
+          <div id="topology-routes" class="topology-routes" aria-live="polite">
+            <div class="skeleton-route" aria-hidden="true"></div>
+            <div class="skeleton-route" aria-hidden="true"></div>
+            <div class="skeleton-route" aria-hidden="true"></div>
+          </div>
+        </section>
+
+        <section id="topology-manager" class="glass-panel manager-panel" aria-labelledby="manager-heading" hidden>
+          <div class="panel-heading manager-heading">
+            <div>
+              <p class="section-kicker">ROUTE ORCHESTRATOR</p>
+              <h2 id="manager-heading">链路编排器 <span>本地 → 中转 → 落地 → 国际网络</span></h2>
+            </div>
+            <button id="manager-close" class="manager-button ghost" type="button">关闭</button>
+          </div>
+
+          <div id="manager-notice" class="manager-notice" hidden role="status"></div>
+
+          <div class="manager-workspace">
+            <aside class="route-library" aria-label="已配置链路">
+              <div class="manager-subheading">
+                <div>
+                  <span class="manager-label">链路列表</span>
+                  <small>选择一条链路进行编辑</small>
+                </div>
+                <button id="route-new" class="manager-button" type="button">+ 新链路</button>
+              </div>
+              <div id="route-list" class="route-list"></div>
+            </aside>
+
+            <div class="route-editor">
+              <div class="route-meta-fields">
+                <label>
+                  <span>链路名称</span>
+                  <input id="route-name-input" type="text" maxlength="160" autocomplete="off" />
+                </label>
+                <label>
+                  <span>链路 ID</span>
+                  <input id="route-id-input" type="text" maxlength="128" autocomplete="off" spellcheck="false" />
+                </label>
+              </div>
+
+              <div id="route-path-builder" class="route-path-builder" aria-label="可交互链路路径"></div>
+              <div id="route-selection-editor" class="selection-editor"></div>
+
+              <div class="manager-actions">
+                <span id="route-dirty-state" class="dirty-state">已保存</span>
+                <button id="route-delete" class="manager-button danger" type="button">删除链路</button>
+                <button id="route-save" class="manager-button primary" type="button">保存并应用</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="deployment-panel">
+            <div class="manager-subheading deployment-heading">
+              <div>
+                <span class="manager-label">私有探针一键部署</span>
+                <small>目标地址仅用于生成命令，不会上传或写入本面板</small>
+              </div>
+            </div>
+            <div class="deployment-grid">
+              <label>
+                <span>私有探针链路</span>
+                <select id="deploy-edge"></select>
+              </label>
+              <label>
+                <span>探针 Agent ID</span>
+                <input id="deploy-agent" type="text" maxlength="128" spellcheck="false" />
+              </label>
+              <label>
+                <span>目标主机 / IP</span>
+                <input id="deploy-host" type="text" maxlength="253" placeholder="例如 203.0.113.10" spellcheck="false" />
+              </label>
+              <label>
+                <span>目标端口</span>
+                <input id="deploy-port" type="number" min="1" max="65535" value="443" />
+              </label>
+              <label>
+                <span>采样间隔（秒）</span>
+                <input id="deploy-interval" type="number" min="5" max="3600" value="30" />
+              </label>
+              <label>
+                <span>超时（秒）</span>
+                <input id="deploy-timeout" type="number" min="1" max="60" value="5" />
+              </label>
+            </div>
+            <div class="deployment-actions">
+              <button id="deploy-generate" class="manager-button primary" type="button">生成一次性部署命令</button>
+              <span id="deploy-status" class="deployment-status">部署码 15 分钟有效且只能使用一次</span>
+            </div>
+            <div id="deploy-command-box" class="command-box" hidden>
+              <pre><code id="deploy-command"></code></pre>
+              <button id="deploy-copy" class="manager-button" type="button">复制命令</button>
+            </div>
+          </div>
+
+          <div class="agent-panel">
+            <div class="manager-subheading">
+              <div>
+                <span class="manager-label">已注册探针</span>
+                <small>状态每 10 秒自动刷新；停用后该 Agent 将无法继续提交延迟样本</small>
+              </div>
+            </div>
+            <div id="agent-list" class="agent-list"></div>
+          </div>
+        </section>
+
+        <section class="insight-layout">
+          <article class="glass-panel link-health-panel" aria-labelledby="link-health-heading">
+            <div class="panel-heading compact">
+              <div>
+                <p class="section-kicker">EDGE ANALYSIS</p>
+                <h2 id="link-health-heading">Link health</h2>
+              </div>
+              <span class="legend-note">Latest / average / loss</span>
+            </div>
+            <div id="link-health-list" class="link-health-list"></div>
+          </article>
+
+          <article class="glass-panel node-panel" aria-labelledby="node-heading">
+            <div class="panel-heading compact">
+              <div>
+                <p class="section-kicker">ASSET STATUS</p>
+                <h2 id="node-heading">Monitored nodes</h2>
+              </div>
+            </div>
+            <div id="node-grid" class="node-grid"></div>
+          </article>
+        </section>
+
+        <section id="error-panel" class="error-panel" hidden role="alert">
+          <div class="error-icon" aria-hidden="true">!</div>
+          <div>
+            <h2>Unable to load dashboard data</h2>
+            <p id="error-message"></p>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>Sanitized Komari integration · Target IPs and administrator credentials are never exposed by dashboard APIs</p>
+      </footer>
+    </div>
+  </body>
+</html>

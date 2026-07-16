@@ -1,0 +1,24 @@
+services:
+  komari-topology:
+    build: .
+    container_name: komari-topology
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

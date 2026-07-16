@@ -1,0 +1,130 @@
+{
+  "title": "TopoMari",
+  "subtitle": "Example multi-hop latency and packet-loss dashboard",
+  "refresh_interval_seconds": 15,
+  "history_hours": 1,
+  "routes": [
+    {
+      "id": "example-alpha",
+      "name": "Example route Alpha",
+      "nodes": [
+        {
+          "id": "client",
+          "label": "Client network",
+          "type": "client",
+          "region": "Reverse latency estimate"
+        },
+        {
+          "id": "relay-alpha",
+          "label": "Relay Alpha",
+          "type": "server",
+          "region": "Region A"
+        },
+        {
+          "id": "exit-alpha",
+          "label": "Exit Alpha",
+          "type": "server",
+          "region": "Region B"
+        },
+        {
+          "id": "internet",
+          "label": "Global Internet",
+          "type": "target"
+        }
+      ],
+      "edges": [
+        {
+          "from": "client",
+          "to": "relay-alpha",
+          "source_uuid": "relay-alpha",
+          "task_ids": [1, 2],
+          "task_group_name": "Example client probes",
+          "measurement_direction": "reverse",
+          "demo_latency": 48,
+          "demo_loss": 0
+        },
+        {
+          "from": "relay-alpha",
+          "to": "exit-alpha",
+          "source_uuid": "relay-alpha",
+          "probe_id": "relay-alpha-to-exit-alpha",
+          "probe_name": "Private TCP probe",
+          "agent_id": "relay-alpha-agent",
+          "demo_latency": 18,
+          "demo_loss": 0
+        },
+        {
+          "from": "exit-alpha",
+          "to": "internet",
+          "source_uuid": "exit-alpha",
+          "probe_id": "exit-alpha-to-internet",
+          "probe_name": "Private egress probe",
+          "agent_id": "exit-alpha-agent",
+          "demo_latency": 8,
+          "demo_loss": 0
+        }
+      ]
+    },
+    {
+      "id": "example-beta",
+      "name": "Example route Beta",
+      "nodes": [
+        {
+          "id": "client",
+          "label": "Client network",
+          "type": "client",
+          "region": "Reverse latency estimate"
+        },
+        {
+          "id": "relay-beta",
+          "label": "Relay Beta",
+          "type": "server",
+          "region": "Region C"
+        },
+        {
+          "id": "exit-beta",
+          "label": "Exit Beta",
+          "type": "server",
+          "region": "Region D"
+        },
+        {
+          "id": "internet",
+          "label": "Global Internet",
+          "type": "target"
+        }
+      ],
+      "edges": [
+        {
+          "from": "client",
+          "to": "relay-beta",
+          "source_uuid": "relay-beta",
+          "task_ids": [1, 2],
+          "task_group_name": "Example client probes",
+          "measurement_direction": "reverse",
+          "demo_latency": 92,
+          "demo_loss": 4
+        },
+        {
+          "from": "relay-beta",
+          "to": "exit-beta",
+          "source_uuid": "relay-beta",
+          "probe_id": "relay-beta-to-exit-beta",
+          "probe_name": "Private TCP probe",
+          "agent_id": "relay-beta-agent",
+          "demo_latency": 32,
+          "demo_loss": 0
+        },
+        {
+          "from": "exit-beta",
+          "to": "internet",
+          "source_uuid": "exit-beta",
+          "probe_id": "exit-beta-to-internet",
+          "probe_name": "Private egress probe",
+          "agent_id": "exit-beta-agent",
+          "demo_latency": 12,
+          "demo_loss": 0
+        }
+      ]
+    }
+  ]
+}
