@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
 import { getLanguage, setLanguage, t } from "../public/frontend/i18n.js";
 
 const indexUrl = new URL("../public/index.html", import.meta.url);
@@ -22,6 +23,38 @@ test("ships persistent Chinese, English, light, and dark preferences", async () 
   assert.match(html, /topomari-theme/);
   assert.match(theme, /:root\[data-theme="light"\]/);
   assert.match(theme, /:root\[data-theme="dark"\]/);
+});
+
+test("uses browser preferences when storage is unavailable during bootstrap", async () => {
+  const html = await readFile(indexUrl, "utf8");
+  const bootstrap = html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+  assert.ok(bootstrap, "expected an inline preference bootstrap script");
+
+  const root = { dataset: {}, style: {}, lang: "" };
+  const themeColor = {
+    content: "#eeede5",
+    setAttribute(name, value) {
+      this[name] = value;
+    },
+  };
+  runInNewContext(bootstrap, {
+    document: {
+      documentElement: root,
+      querySelector: (selector) => selector === 'meta[name="theme-color"]' ? themeColor : null,
+    },
+    localStorage: {
+      getItem() {
+        throw new Error("storage blocked");
+      },
+    },
+    matchMedia: () => ({ matches: true }),
+    navigator: { language: "zh-CN" },
+  });
+
+  assert.equal(root.dataset.theme, "dark");
+  assert.equal(root.lang, "zh-CN");
+  assert.equal(root.style.colorScheme, "dark");
+  assert.equal(themeColor.content, "#1c1b19");
 });
 
 test("keeps browser requests behind the frontend API client", async () => {

@@ -37,3 +37,26 @@ test("renders the normal trend once two valid samples are available", () => {
   assert.match(markup, /class="spark-line"/);
   assert.doesNotMatch(markup, /is-collecting/);
 });
+
+test("escapes localized labels before inserting them into SVG markup", () => {
+  const hostileLabel = `Latency "fast" <script>alert('x')</script> & rising`;
+  const expected = "Latency &quot;fast&quot; &lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; rising";
+  const labels = {
+    empty: hostileLabel,
+    collecting: () => hostileLabel,
+    range: () => hostileLabel,
+  };
+
+  const empty = renderSparkline([], "healthy", formatLatency, labels);
+  const collecting = renderSparkline([{ value: 13 }], "healthy", formatLatency, labels);
+  const range = renderSparkline([{ value: 12 }, { value: 13 }], "healthy", formatLatency, labels);
+
+  assert.ok(empty.includes(`aria-label="${expected}"`));
+  assert.ok(collecting.includes(`aria-label="${expected}"`));
+  assert.ok(collecting.includes(`<title>${expected}</title>`));
+  assert.ok(range.includes(`aria-label="${expected}"`));
+  for (const markup of [empty, collecting, range]) {
+    assert.doesNotMatch(markup, /<script>/);
+    assert.doesNotMatch(markup, /aria-label="[^"]*"fast"/);
+  }
+});
