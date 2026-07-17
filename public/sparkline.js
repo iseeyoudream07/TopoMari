@@ -14,20 +14,21 @@ function latencyValues(history) {
   });
 }
 
-export function renderSparkline(history, status, formatLatency = (value) => `${value} ms`) {
+export function renderSparkline(history, status, formatLatency = (value) => `${value} ms`, labels = {}) {
   const values = latencyValues(history);
   const valid = values.filter((value) => value !== null);
   const tone = toneClass(status);
 
   if (!valid.length) {
-    return `<svg class="sparkline ${tone}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="No latency trend available"><path class="grid-line" d="M0 30H130"/></svg>`;
+    const label = labels.empty || "No latency trend available";
+    return `<svg class="sparkline ${tone}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${label}"><path class="grid-line" d="M0 30H130"/></svg>`;
   }
 
   if (valid.length === 1) {
     const value = valid[0];
     const pointX = WIDTH - PADDING;
     const pointY = HEIGHT / 2;
-    const label = `Collecting latency trend; one sample at ${formatLatency(value)}`;
+    const label = labels.collecting?.(formatLatency(value)) || `Collecting latency trend; one sample at ${formatLatency(value)}`;
     return `
     <svg class="sparkline ${tone} is-collecting" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${label}">
       <title>${label}</title>
@@ -51,8 +52,9 @@ export function renderSparkline(history, status, formatLatency = (value) => `${v
     .filter(Boolean);
   const line = points.map(([x, y], index) => `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
   const area = `${line} L${points.at(-1)[0].toFixed(1)} ${HEIGHT - PADDING} L${points[0][0].toFixed(1)} ${HEIGHT - PADDING} Z`;
+  const label = labels.range?.(formatLatency(min), formatLatency(max)) || `Latency trend from ${formatLatency(min)} to ${formatLatency(max)}`;
   return `
-    <svg class="sparkline ${tone}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="Latency trend from ${formatLatency(min)} to ${formatLatency(max)}">
+    <svg class="sparkline ${tone}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-label="${label}">
       <path class="grid-line" d="M0 30H130"/>
       <path class="spark-area" d="${area}"/>
       <path class="spark-line" d="${line}"/>

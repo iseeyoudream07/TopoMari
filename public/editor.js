@@ -1,3 +1,6 @@
+import { editorApi } from "./frontend/api-client.js";
+import { getLocale, t } from "./frontend/i18n.js";
+
 const elements = {
   toggle: document.getElementById("manager-toggle"),
   panel: document.getElementById("topology-manager"),
@@ -26,12 +29,12 @@ const elements = {
   agentList: document.getElementById("agent-list"),
 };
 
-const stageNames = ["本地", "中转机", "落地机", "国际网络"];
+const stageKeys = ["editor.stage.local", "editor.stage.relay", "editor.stage.exit", "editor.stage.internet"];
 const thresholdLabels = {
-  warning_latency_ms: "延迟警告 (ms)",
-  degraded_latency_ms: "延迟异常 (ms)",
-  warning_loss_percent: "丢包警告 (%)",
-  degraded_loss_percent: "丢包异常 (%)",
+  warning_latency_ms: "editor.threshold.warningLatency",
+  degraded_latency_ms: "editor.threshold.degradedLatency",
+  warning_loss_percent: "editor.threshold.warningLoss",
+  degraded_loss_percent: "editor.threshold.degradedLoss",
 };
 
 let bootstrap = null;
@@ -47,6 +50,7 @@ let lastDeployEdge = "";
 let noticeTimer = null;
 let probeStatusTimer = null;
 let probeStatusLoading = false;
+let deploymentStatus = { key: "deploy.validity", variables: {} };
 
 const probeStatusRefreshMs = 10_000;
 
@@ -83,25 +87,23 @@ function showNotice(message, tone = "success") {
   }, tone === "error" ? 9000 : 5000);
 }
 
-async function api(path, { method = "GET", body } = {}) {
-  const headers = { Accept: "application/json" };
-  if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
-    headers["X-Topology-CSRF"] = csrfToken;
-  }
-  const response = await fetch(path, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: "no-store",
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(payload.error || `Request failed (${response.status})`);
-    error.status = response.status;
-    throw error;
-  }
-  return payload;
+function renderDeploymentStatus() {
+  elements.deployStatus.textContent = deploymentStatus.text
+    ?? t(deploymentStatus.key, deploymentStatus.variables);
+}
+
+function setDeploymentStatus(key, variables = {}) {
+  deploymentStatus = { key, variables };
+  renderDeploymentStatus();
+}
+
+function setDeploymentStatusText(text) {
+  deploymentStatus = { text };
+  renderDeploymentStatus();
+}
+
+function stageName(index) {
+  return stageKeys[index] ? t(stageKeys[index]) : t("common.node", { count: index + 1 });
 }
 
 function currentRoute() {
@@ -110,13 +112,13 @@ function currentRoute() {
 
 function markDirty() {
   isDirty = true;
-  elements.dirty.textContent = "有未保存的更改";
+  elements.dirty.textContent = t("manager.unsaved");
   elements.dirty.dataset.dirty = "true";
 }
 
 function markSaved() {
   isDirty = false;
-  elements.dirty.textContent = "已保存";
+  elements.dirty.textContent = t("manager.saved");
   elements.dirty.dataset.dirty = "false";
 }
 
@@ -140,21 +142,21 @@ function routeNodeLabel(node) {
 }
 
 function edgeLabel(edge) {
-  if (edge.probe_id) return ["私有探针", edge.probe_name || edge.probe_id];
+  if (edge.probe_id) return [t("measurement.privateProbe"), edge.probe_name || edge.probe_id];
   const taskCount = Array.isArray(edge.task_ids) ? edge.task_ids.length : edge.task_id !== undefined ? 1 : 0;
-  return ["Komari", taskCount ? `${taskCount} 个任务` : "待选择任务"];
+  return ["Komari", taskCount ? t("editor.tasks", { count: taskCount }) : t("editor.selectTasks")];
 }
 
 function renderRouteList() {
   if (!draft?.routes?.length) {
-    elements.routeList.innerHTML = '<div class="manager-empty">暂无链路</div>';
+    elements.routeList.innerHTML = `<div class="manager-empty">${escapeHtml(t("editor.noRoutes"))}</div>`;
     return;
   }
   elements.routeList.innerHTML = draft.routes
     .map((route, index) => `
       <button class="route-list-item ${index === selectedRouteIndex ? "is-active" : ""}" type="button" data-route-index="${index}">
         <strong>${escapeHtml(route.name || route.id)}</strong>
-        <span>${escapeHtml(route.id)} · ${route.edges.length} 段</span>
+        <span>${escapeHtml(route.id)} · ${escapeHtml(t("editor.segments", { count: route.edges.length }))}</span>
       </button>`)
     .join("");
 }
@@ -162,12 +164,12 @@ function renderRouteList() {
 function renderPath() {
   const route = currentRoute();
   if (!route) {
-    elements.path.innerHTML = '<div class="manager-empty">请选择或新建一条链路</div>';
+    elements.path.innerHTML = `<div class="manager-empty">${escapeHtml(t("editor.selectRoute"))}</div>`;
     return;
   }
   const parts = [];
   route.nodes.forEach((node, index) => {
-    const stage = stageNames[index] || `节点 ${index + 1}`;
+    const stage = stageName(index);
     parts.push(`
       <button type="button" class="builder-node ${selectedKind === "node" && selectedIndex === index ? "is-selected" : ""}" data-select-kind="node" data-select-index="${index}">
         <span>${escapeHtml(stage)}</span>
@@ -176,7 +178,7 @@ function renderPath() {
     if (route.edges[index]) {
       const [type, detail] = edgeLabel(route.edges[index]);
       parts.push(`
-        <button type="button" class="builder-edge ${selectedKind === "edge" && selectedIndex === index ? "is-selected" : ""}" data-select-kind="edge" data-select-index="${index}" aria-label="编辑 ${escapeHtml(stage)} 后的链路">
+        <button type="button" class="builder-edge ${selectedKind === "edge" && selectedIndex === index ? "is-selected" : ""}" data-select-kind="edge" data-select-index="${index}" aria-label="${escapeHtml(t("editor.editAfterStage", { stage }))}">
           <span>${escapeHtml(type)}</span>
           <small>${escapeHtml(detail)}</small>
         </button>`);
@@ -188,10 +190,10 @@ function renderPath() {
 function nodeOptions(currentId) {
   const nodes = [...(bootstrap?.nodes || [])];
   if (currentId && !nodes.some((node) => node.id === currentId)) {
-    nodes.unshift({ id: currentId, name: currentId, region: "当前配置（Komari 未返回）", online: false });
+    nodes.unshift({ id: currentId, name: currentId, region: t("editor.currentMissing"), online: false });
   }
   return nodes
-    .map((node) => `<option value="${escapeHtml(node.id)}" ${node.id === currentId ? "selected" : ""}>${escapeHtml(node.name)}${node.region ? ` · ${escapeHtml(node.region)}` : ""}${node.online === false ? " · 离线" : ""}</option>`)
+    .map((node) => `<option value="${escapeHtml(node.id)}" ${node.id === currentId ? "selected" : ""}>${escapeHtml(node.name)}${node.region ? ` · ${escapeHtml(node.region)}` : ""}${node.online === false ? ` · ${escapeHtml(t("common.offline"))}` : ""}</option>`)
     .join("");
 }
 
@@ -199,12 +201,12 @@ function thresholdFields(edge) {
   const thresholds = edge.health_thresholds || {};
   return `
     <fieldset class="threshold-fieldset">
-      <legend>该段健康阈值（留空使用全局默认）</legend>
+      <legend>${escapeHtml(t("editor.thresholdLegend"))}</legend>
       <div class="threshold-grid">
-        ${Object.entries(thresholdLabels).map(([key, label]) => `
+        ${Object.entries(thresholdLabels).map(([key, labelKey]) => `
           <label>
-            <span>${escapeHtml(label)}</span>
-            <input type="number" min="0" step="0.1" data-threshold-key="${key}" value="${escapeHtml(thresholds[key] ?? "")}" placeholder="默认" />
+            <span>${escapeHtml(t(labelKey))}</span>
+            <input type="number" min="0" step="0.1" data-threshold-key="${key}" value="${escapeHtml(thresholds[key] ?? "")}" placeholder="${escapeHtml(t("common.default"))}" />
           </label>`).join("")}
       </div>
     </fieldset>`;
@@ -216,7 +218,7 @@ function renderNodeEditor(route, index) {
   return `
     <div class="selection-title">
       <div>
-        <span>${escapeHtml(stageNames[index] || `节点 ${index + 1}`)}</span>
+        <span>${escapeHtml(stageName(index))}</span>
         <strong>${escapeHtml(routeNodeLabel(node))}</strong>
       </div>
       <code>${escapeHtml(node.id)}</code>
@@ -224,15 +226,15 @@ function renderNodeEditor(route, index) {
     <div class="editor-fields">
       ${selectable ? `
         <label class="field-wide">
-          <span>Komari 节点</span>
+          <span>${escapeHtml(t("editor.komariNode"))}</span>
           <select data-node-select>${nodeOptions(node.id)}</select>
         </label>` : ""}
       <label>
-        <span>显示名称</span>
+        <span>${escapeHtml(t("editor.displayName"))}</span>
         <input type="text" maxlength="160" data-node-field="label" value="${escapeHtml(node.label || "")}" />
       </label>
       <label>
-        <span>地区 / 说明</span>
+        <span>${escapeHtml(t("editor.region"))}</span>
         <input type="text" maxlength="160" data-node-field="region" value="${escapeHtml(node.region || "")}" />
       </label>
     </div>`;
@@ -247,11 +249,11 @@ function renderTaskChoices(edge) {
         : [],
   );
   const tasks = bootstrap?.tasks || [];
-  if (!tasks.length) return '<p class="manager-empty">Komari 未返回可用延迟任务。请先在 Komari 创建任务。</p>';
+  if (!tasks.length) return `<p class="manager-empty">${escapeHtml(t("editor.noTasks"))}</p>`;
   return `<div class="task-choice-grid">${tasks.map((task) => `
     <label class="task-choice">
       <input type="checkbox" data-task-id="${Number(task.id)}" ${selected.has(Number(task.id)) ? "checked" : ""} />
-      <span><strong>${escapeHtml(task.name || `Task ${task.id}`)}</strong><small>#${escapeHtml(task.id)}${task.type ? ` · ${escapeHtml(task.type)}` : ""}</small></span>
+      <span><strong>${escapeHtml(task.name || t("editor.taskFallback", { id: task.id }))}</strong><small>#${escapeHtml(task.id)}${task.type ? ` · ${escapeHtml(task.type)}` : ""}</small></span>
     </label>`).join("")}</div>`;
 }
 
@@ -262,34 +264,34 @@ function renderEdgeEditor(route, index) {
   if (edge.probe_id) {
     return `
       <div class="selection-title">
-        <div><span>私有 TCP 探针</span><strong>${escapeHtml(from)} → ${escapeHtml(to)}</strong></div>
+        <div><span>${escapeHtml(t("editor.privateTcp"))}</span><strong>${escapeHtml(from)} → ${escapeHtml(to)}</strong></div>
         <code>${escapeHtml(edge.probe_id)}</code>
       </div>
       <div class="editor-fields">
         <label>
-          <span>探针链路 ID</span>
+          <span>${escapeHtml(t("editor.probeEdgeId"))}</span>
           <input type="text" maxlength="128" spellcheck="false" data-edge-field="probe_id" value="${escapeHtml(edge.probe_id)}" />
         </label>
         <label>
-          <span>显示名称</span>
-          <input type="text" maxlength="160" data-edge-field="probe_name" value="${escapeHtml(edge.probe_name || "Private TCP probe")}" />
+          <span>${escapeHtml(t("editor.displayName"))}</span>
+          <input type="text" maxlength="160" data-edge-field="probe_name" value="${escapeHtml(edge.probe_name || t("editor.privateTcp"))}" />
         </label>
         <label class="field-wide">
-          <span>部署在来源机上的 Agent ID</span>
-          <input type="text" maxlength="128" spellcheck="false" data-edge-field="agent_id" value="${escapeHtml(edge.agent_id || "")}" placeholder="例如 relay-tokyo" />
-          <small>保存后，下方会为这个 Agent 生成一次性部署命令。</small>
+          <span>${escapeHtml(t("editor.sourceAgentId"))}</span>
+          <input type="text" maxlength="128" spellcheck="false" data-edge-field="agent_id" value="${escapeHtml(edge.agent_id || "")}" placeholder="${escapeHtml(t("editor.agentPlaceholder"))}" />
+          <small>${escapeHtml(t("editor.agentHelp"))}</small>
         </label>
       </div>
       ${thresholdFields(edge)}`;
   }
   return `
     <div class="selection-title">
-      <div><span>Komari 延迟任务（反向估算）</span><strong>${escapeHtml(from)} → ${escapeHtml(to)}</strong></div>
+      <div><span>${escapeHtml(t("editor.komariEstimate"))}</span><strong>${escapeHtml(from)} → ${escapeHtml(to)}</strong></div>
       <code>${escapeHtml(edge.source_uuid || edge.to)}</code>
     </div>
     <label class="field-wide standalone-field">
-      <span>任务组名称</span>
-      <input type="text" maxlength="160" data-edge-field="task_group_name" value="${escapeHtml(edge.task_group_name || "本地网络 · Komari 探测")}" />
+      <span>${escapeHtml(t("editor.taskGroup"))}</span>
+      <input type="text" maxlength="160" data-edge-field="task_group_name" value="${escapeHtml(edge.task_group_name || `${t("editor.localNetwork")} · Komari`)}" />
     </label>
     ${renderTaskChoices(edge)}
     ${thresholdFields(edge)}`;
@@ -324,7 +326,7 @@ function renderDeploymentOptions() {
   const previous = elements.deployEdge.value;
   elements.deployEdge.innerHTML = options.length
     ? options.map((item) => `<option value="${escapeHtml(item.edge.probe_id)}">${escapeHtml(item.route.name)} · ${escapeHtml(routeNodeLabel(item.route.nodes[item.edgeIndex]))} → ${escapeHtml(routeNodeLabel(item.route.nodes[item.edgeIndex + 1]))}</option>`).join("")
-    : '<option value="">没有已配置的私有探针链路</option>';
+    : `<option value="">${escapeHtml(t("editor.noPrivateEdges"))}</option>`;
   if (options.some((item) => item.edge.probe_id === previous)) elements.deployEdge.value = previous;
   elements.deployGenerate.disabled = !options.length;
   const selected = options.find((item) => item.edge.probe_id === elements.deployEdge.value);
@@ -338,7 +340,7 @@ function renderAgents() {
   const agents = bootstrap?.agents || [];
   const overview = new Map((bootstrap?.probeEdges || []).map((edge) => [edge.edgeId, edge]));
   if (!agents.length) {
-    elements.agentList.innerHTML = '<div class="manager-empty">尚未注册探针；生成命令并在来源机执行后会出现在这里。</div>';
+    elements.agentList.innerHTML = `<div class="manager-empty">${escapeHtml(t("editor.noAgents"))}</div>`;
     return;
   }
   elements.agentList.innerHTML = agents.map((agent) => {
@@ -354,10 +356,10 @@ function renderAgents() {
           <span>${escapeHtml(agent.allowedEdges.join(", "))}</span>
         </div>
         <div class="agent-meta">
-          <span class="agent-state ${agent.enabled ? "is-enabled" : ""}">${agent.enabled ? "已启用" : "已停用"}</span>
-          <small>${latest ? `最近上报 ${escapeHtml(new Date(latest).toLocaleString())}` : "暂无样本"}</small>
+          <span class="agent-state ${agent.enabled ? "is-enabled" : ""}">${escapeHtml(t(agent.enabled ? "editor.enabled" : "editor.disabled"))}</span>
+          <small>${latest ? escapeHtml(t("editor.lastReport", { time: new Date(latest).toLocaleString(getLocale()) })) : escapeHtml(t("editor.noSamples"))}</small>
         </div>
-        <button type="button" class="manager-button ${agent.enabled ? "danger" : ""}" data-agent-id="${escapeHtml(agent.id)}" data-agent-enabled="${agent.enabled ? "true" : "false"}">${agent.enabled ? "停用" : "启用"}</button>
+        <button type="button" class="manager-button ${agent.enabled ? "danger" : ""}" data-agent-id="${escapeHtml(agent.id)}" data-agent-enabled="${agent.enabled ? "true" : "false"}">${escapeHtml(t(agent.enabled ? "editor.disable" : "editor.enable"))}</button>
       </div>`;
   }).join("");
 }
@@ -366,12 +368,12 @@ async function refreshProbeStatus({ showErrors = false } = {}) {
   if (!bootstrap || probeStatusLoading) return;
   probeStatusLoading = true;
   try {
-    const payload = await api(`/api/probes?t=${Date.now()}`);
+    const payload = await editorApi.probeStatus();
     bootstrap.agents = Array.isArray(payload.agents) ? payload.agents : [];
     bootstrap.probeEdges = Array.isArray(payload.edges) ? payload.edges : [];
     renderAgents();
   } catch (error) {
-    if (showErrors) showNotice(`探针状态刷新失败：${error.message}`, "error");
+    if (showErrors) showNotice(t("editor.refreshFailed", { message: error.message }), "error");
   } finally {
     probeStatusLoading = false;
   }
@@ -393,18 +395,18 @@ function renderEditor() {
 function addRoute() {
   const suffix = Date.now().toString(36);
   const candidates = bootstrap?.nodes || [];
-  const relay = candidates[0] || { id: `relay-${suffix}`, name: "选择中转机", region: "" };
-  const exit = candidates.find((node) => node.id !== relay.id) || { id: `exit-${suffix}`, name: "选择落地机", region: "" };
+  const relay = candidates[0] || { id: `relay-${suffix}`, name: t("editor.chooseRelay"), region: "" };
+  const exit = candidates.find((node) => node.id !== relay.id) || { id: `exit-${suffix}`, name: t("editor.chooseExit"), region: "" };
   const id = `route-${suffix}`;
   const taskIds = (bootstrap?.tasks || []).slice(0, 5).map((task) => Number(task.id));
   const route = {
     id,
-    name: "新监控链路",
+    name: t("editor.newRoute"),
     nodes: [
-      { id: "client", label: "本地网络", type: "client", region: "Komari 反向估算" },
+      { id: "client", label: t("editor.localNetwork"), type: "client", region: t("editor.reverseEstimate") },
       { id: relay.id, label: relay.name, type: "server", region: relay.region || "" },
       { id: exit.id, label: exit.name, type: "server", region: exit.region || "" },
-      { id: "internet", label: "国际网络", type: "target", region: "" },
+      { id: "internet", label: t("editor.stage.internet"), type: "target", region: "" },
     ],
     edges: [
       {
@@ -412,7 +414,7 @@ function addRoute() {
         to: relay.id,
         source_uuid: relay.id,
         task_ids: taskIds,
-        task_group_name: "本地网络 · Komari 探测",
+        task_group_name: `${t("editor.localNetwork")} · Komari`,
         measurement_direction: "reverse",
       },
       {
@@ -420,7 +422,7 @@ function addRoute() {
         to: exit.id,
         source_uuid: relay.id,
         probe_id: `${id}-relay-exit`,
-        probe_name: "中转 → 落地私有探针",
+        probe_name: t("editor.privateRelayExit"),
         agent_id: `relay-${suffix}`,
       },
       {
@@ -428,7 +430,7 @@ function addRoute() {
         to: "internet",
         source_uuid: exit.id,
         probe_id: `${id}-exit-internet`,
-        probe_name: "落地 → 国际网络私有探针",
+        probe_name: t("editor.privateExitInternet"),
         agent_id: `exit-${suffix}`,
       },
     ],
@@ -445,20 +447,17 @@ async function saveTopology() {
   draft.routes.forEach(syncRoute);
   elements.routeSave.disabled = true;
   try {
-    const result = await api("/api/editor/topology", {
-      method: "PUT",
-      body: { config: draft, revision },
-    });
+    const result = await editorApi.saveTopology(draft, revision, csrfToken);
     draft = clone(result.config);
     revision = result.revision;
     selectedRouteIndex = Math.min(selectedRouteIndex, draft.routes.length - 1);
     markSaved();
     renderEditor();
-    showNotice("链路拓扑已保存并立即应用。", "success");
+    showNotice(t("editor.savedNotice"), "success");
     await Promise.resolve(onSavedCallback());
   } catch (error) {
     showNotice(error.message, "error");
-    if (error.status === 409 && window.confirm("配置已在其他窗口更新。是否丢弃当前改动并重新载入？")) {
+    if (error.status === 409 && window.confirm(t("editor.reloadConflict"))) {
       await loadBootstrap();
     }
   } finally {
@@ -469,7 +468,7 @@ async function saveTopology() {
 function deleteRoute() {
   const route = currentRoute();
   if (!route || draft.routes.length <= 1) return;
-  if (!window.confirm(`确认删除链路“${route.name}”？保存后才会生效。`)) return;
+  if (!window.confirm(t("editor.deleteConfirm", { name: route.name }))) return;
   draft.routes.splice(selectedRouteIndex, 1);
   selectedRouteIndex = Math.min(selectedRouteIndex, draft.routes.length - 1);
   selectedKind = "node";
@@ -488,21 +487,18 @@ function selectedPrivateEdge() {
 
 async function requestEnrollment(body) {
   try {
-    return await api("/api/editor/enrollments", { method: "POST", body });
+    return await editorApi.createEnrollment(body, csrfToken);
   } catch (error) {
     if (error.status !== 409) throw error;
-    const confirmed = window.confirm("这个 Agent 已经存在。继续会在部署命令执行时轮换旧令牌，旧探针随后失效。是否继续？");
-    if (!confirmed) throw new Error("已取消令牌轮换");
-    return await api("/api/editor/enrollments", {
-      method: "POST",
-      body: { ...body, rotateExisting: true },
-    });
+    const confirmed = window.confirm(t("editor.rotateConfirm"));
+    if (!confirmed) throw new Error(t("editor.rotationCancelled"));
+    return await editorApi.createEnrollment({ ...body, rotateExisting: true }, csrfToken);
   }
 }
 
 async function generateDeploymentCommand() {
   if (isDirty) {
-    showNotice("请先保存链路，再生成与已保存配置绑定的部署命令。", "error");
+    showNotice(t("editor.saveBeforeDeploy"), "error");
     return;
   }
   const item = selectedPrivateEdge();
@@ -512,23 +508,23 @@ async function generateDeploymentCommand() {
   const interval = Number(elements.deployInterval.value);
   const timeout = Number(elements.deployTimeout.value);
   if (!item || !agentId || !targetHost || !Number.isInteger(targetPort) || targetPort < 1 || targetPort > 65535) {
-    showNotice("请完整填写私有探针链路、Agent ID、目标主机和有效端口。", "error");
+    showNotice(t("editor.completeDeployFields"), "error");
     return;
   }
   if (!/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/.test(agentId)) {
-    showNotice("Agent ID 只能包含字母、数字、点、下划线、冒号和连字符。", "error");
+    showNotice(t("editor.invalidAgentId"), "error");
     return;
   }
   if (!/^[a-zA-Z0-9_.:[\]-]+$/.test(targetHost)) {
-    showNotice("目标主机必须是有效的域名、IPv4 或 IPv6 地址。", "error");
+    showNotice(t("editor.invalidHost"), "error");
     return;
   }
   if (item.edge.agent_id && item.edge.agent_id !== agentId) {
-    showNotice(`该链路已绑定 Agent ${item.edge.agent_id}；请在链路编辑器中修改并保存。`, "error");
+    showNotice(t("editor.agentMismatch", { agent: item.edge.agent_id }), "error");
     return;
   }
   elements.deployGenerate.disabled = true;
-  elements.deployStatus.textContent = "正在签发一次性部署码…";
+  setDeploymentStatus("editor.issuingCode");
   try {
     const enrollment = await requestEnrollment({
       agentId,
@@ -548,12 +544,10 @@ async function generateDeploymentCommand() {
     const command = `curl -fsSL ${shellQuote(`${origin}/agent/install.sh`)} | sudo bash -s -- ${args.map(shellQuote).join(" ")}`;
     elements.command.textContent = command;
     elements.commandBox.hidden = false;
-    const expires = new Date(enrollment.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    elements.deployStatus.textContent = origin.startsWith("https://")
-      ? `部署码将在 ${expires} 过期，成功执行一次后立即失效。`
-      : `当前为 HTTP，仅适合临时测试；部署码将在 ${expires} 过期。`;
+    const expires = new Date(enrollment.expiresAt).toLocaleTimeString(getLocale(), { hour: "2-digit", minute: "2-digit" });
+    setDeploymentStatus(origin.startsWith("https://") ? "editor.codeExpires" : "editor.httpWarning", { time: expires });
   } catch (error) {
-    elements.deployStatus.textContent = error.message;
+    setDeploymentStatusText(error.message);
     showNotice(error.message, "error");
   } finally {
     elements.deployGenerate.disabled = !privateEdges().length;
@@ -563,17 +557,17 @@ async function generateDeploymentCommand() {
 async function toggleAgent(button) {
   const agentId = button.dataset.agentId;
   const currentlyEnabled = button.dataset.agentEnabled === "true";
-  if (currentlyEnabled && !window.confirm(`停用 Agent ${agentId}？它将无法继续提交样本。`)) return;
+  if (currentlyEnabled && !window.confirm(t("editor.disableConfirm", { agent: agentId }))) return;
   button.disabled = true;
   try {
-    const result = await api("/api/editor/agents/action", {
-      method: "POST",
-      body: { agentId, enabled: !currentlyEnabled },
-    });
+    const result = await editorApi.setAgentEnabled(agentId, !currentlyEnabled, csrfToken);
     const index = bootstrap.agents.findIndex((agent) => agent.id === agentId);
     if (index >= 0) bootstrap.agents[index] = result.agent;
     renderAgents();
-    showNotice(`Agent ${agentId} 已${result.agent.enabled ? "启用" : "停用"}。`, "success");
+    showNotice(t("editor.agentChanged", {
+      agent: agentId,
+      state: t(result.agent.enabled ? "editor.enabled" : "editor.disabled"),
+    }), "success");
   } catch (error) {
     showNotice(error.message, "error");
     button.disabled = false;
@@ -691,15 +685,16 @@ function bindEvents() {
     lastDeployEdge = "";
     renderDeploymentOptions();
     elements.commandBox.hidden = true;
+    setDeploymentStatus("deploy.validity");
   });
   elements.deployGenerate.addEventListener("click", generateDeploymentCommand);
   elements.copy.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(elements.command.textContent);
-      elements.copy.textContent = "已复制";
-      setTimeout(() => { elements.copy.textContent = "复制命令"; }, 1800);
+      elements.copy.textContent = t("deploy.copied");
+      setTimeout(() => { elements.copy.textContent = t("deploy.copy"); }, 1800);
     } catch {
-      showNotice("浏览器拒绝访问剪贴板，请手动复制命令。", "error");
+      showNotice(t("editor.clipboardDenied"), "error");
     }
   });
   elements.agentList.addEventListener("click", (event) => {
@@ -718,7 +713,7 @@ function bindEvents() {
 }
 
 async function loadBootstrap() {
-  const payload = await api(`/api/editor/bootstrap?t=${Date.now()}`);
+  const payload = await editorApi.bootstrap();
   bootstrap = payload;
   draft = clone(payload.config);
   revision = payload.revision;
@@ -734,6 +729,13 @@ async function loadBootstrap() {
 export async function initTopologyEditor({ onSaved = () => {} } = {}) {
   if (!elements.toggle || !elements.panel) return;
   onSavedCallback = onSaved;
+  document.addEventListener("topomari:languagechange", () => {
+    if (draft) renderEditor();
+    if (isDirty) markDirty();
+    else markSaved();
+    renderDeploymentStatus();
+    if (!elements.commandBox.hidden) elements.copy.textContent = t("deploy.copy");
+  });
   try {
     await loadBootstrap();
     bindEvents();
