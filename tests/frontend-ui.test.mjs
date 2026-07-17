@@ -21,6 +21,7 @@ test("ships persistent Chinese, English, light, and dark preferences", async () 
 
   assert.match(html, /data-language-value="zh-CN"/);
   assert.match(html, /data-language-value="en"/);
+  assert.match(html, /class="language-switch"[^>]*hidden/);
   assert.match(html, /id="theme-toggle"/);
   assert.match(html, /topomari-language/);
   assert.match(html, /topomari-theme/);
@@ -60,7 +61,7 @@ test("uses browser preferences when storage is unavailable during bootstrap", as
   assert.equal(themeColor.content, "#1c1b19");
 });
 
-test("uses the TopoMari icon and requested interface fonts", async () => {
+test("uses the circular TopoMari icon and requested interface fonts", async () => {
   const [html, styles, icon, server] = await Promise.all([
     readFile(indexUrl, "utf8"),
     readFile(stylesUrl, "utf8"),
@@ -68,15 +69,33 @@ test("uses the TopoMari icon and requested interface fonts", async () => {
     readFile(serverUrl, "utf8"),
   ]);
 
-  assert.match(html, /rel="icon" href="\/favicon\.png"/);
-  assert.match(html, /<img src="\/favicon\.png" alt=""/);
+  assert.match(html, /rel="icon" href="\/favicon\.png\?v=2\.5\.1"/);
+  assert.match(html, /<img src="\/favicon\.png\?v=2\.5\.1" alt=""/);
   assert.match(html, /family=Arimo/);
-  assert.match(html, /family=Noto\+Serif\+TC/);
-  assert.match(styles, /--font-ui: "Arimo", "Noto Serif TC"/);
+  assert.match(html, /family=Noto\+Serif\+SC/);
+  assert.match(styles, /--font-ui: "Arimo", "Noto Serif SC", serif/);
   assert.match(styles, /font-optical-sizing: auto/);
   assert.match(server, /style-src 'self' https:\/\/fonts\.googleapis\.com/);
   assert.match(server, /font-src 'self' https:\/\/fonts\.gstatic\.com/);
   assert.deepEqual([...icon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(icon[25], 6, "favicon must retain an alpha channel for transparent corners");
+});
+
+test("keeps TopoMari defaults while allowing separate backend-controlled site and heading names", async () => {
+  const [html, app, api, server] = await Promise.all([
+    readFile(indexUrl, "utf8"),
+    readFile(appUrl, "utf8"),
+    readFile(apiUrl, "utf8"),
+    readFile(serverUrl, "utf8"),
+  ]);
+
+  assert.match(html, /<title>TopoMari<\/title>/);
+  assert.match(html, /<h1 id="page-title">TopoMari<\/h1>/);
+  assert.match(app, /document\.title = meta\.siteName \|\| "TopoMari"/);
+  assert.match(app, /meta\.mainTitle \|\| meta\.title \|\| "TopoMari"/);
+  assert.match(api, /saveBranding\(siteName, mainTitle, revision, csrfToken\)/);
+  assert.match(server, /\/api\/editor\/branding/);
+  assert.match(server, /sanitizeBranding/);
 });
 
 test("keeps the main dashboard copy concise", async () => {

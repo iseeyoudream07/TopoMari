@@ -250,8 +250,8 @@ function renderDashboard(dashboard) {
   lastDashboard = dashboard;
   lastError = null;
   const { meta, summary, routes, nodes } = dashboard;
-  document.title = meta.title || "TopoMari";
-  elements.title.textContent = meta.title || "TopoMari";
+  document.title = meta.siteName || "TopoMari";
+  elements.title.textContent = meta.mainTitle || meta.title || "TopoMari";
   elements.sourceChip.dataset.mode = meta.mode;
   elements.sourceLabel.textContent = t({ live: "source.live", hybrid: "source.hybrid", demo: "source.demo" }[meta.mode] || "source.connected");
   const updatedTime = new Intl.DateTimeFormat(getLocale(), {

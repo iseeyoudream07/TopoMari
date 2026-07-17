@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.5.1 - 2026-07-17
+
+- Switched Simplified Chinese text to Noto Serif SC and temporarily hid the language switch while preserving its implementation.
+- Replaced the opaque square favicon with the supplied transparent circular TopoMari artwork.
+- Added separate backend-configurable site and main-title branding values, both defaulting to TopoMari.
+
 ## 2.5.0 - 2026-07-17
 
 - Refined the dashboard with a quieter warm-neutral visual system inspired by minimalist Komari interfaces.

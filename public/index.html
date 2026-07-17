@@ -6,11 +6,11 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#eeede5" />
     <title>TopoMari</title>
-    <link rel="icon" href="/favicon.png" type="image/png" sizes="256x256" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="icon" href="/favicon.png?v=2.5.1" type="image/png" sizes="1254x1254" />
+    <link rel="apple-touch-icon" href="/favicon.png?v=2.5.1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+TC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
     <script>
       (() => {
         const preferredTheme = () => typeof matchMedia === "function"
@@ -36,9 +36,9 @@
         if (themeColor) themeColor.setAttribute("content", theme === "dark" ? "#1c1b19" : "#eeede5");
       })();
     </script>
-    <link rel="stylesheet" href="/styles.css?v=2.5.0-ui" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.5.0-ui" />
-    <script type="module" src="/app.js?v=2.5.0-ui"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.5.1-ui" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.5.1-ui" />
+    <script type="module" src="/app.js?v=2.5.1-ui"></script>
   </head>
   <body>
     <div class="ambient ambient-a" aria-hidden="true"></div>
@@ -48,7 +48,7 @@
       <header class="app-header">
         <div class="brand-lockup">
           <div class="brand-mark" aria-hidden="true">
-            <img src="/favicon.png" alt="" />
+            <img src="/favicon.png?v=2.5.1" alt="" />
           </div>
           <h1 id="page-title">TopoMari</h1>
         </div>
@@ -58,7 +58,7 @@
             <span class="source-dot" aria-hidden="true"></span>
             <span id="source-label" data-i18n="source.connecting">正在连接</span>
           </div>
-          <div class="language-switch" role="group" data-i18n-aria-label="language.label" aria-label="界面语言">
+          <div class="language-switch" role="group" data-i18n-aria-label="language.label" aria-label="界面语言" hidden>
             <button type="button" data-language-value="zh-CN" aria-pressed="true">中</button>
             <button type="button" data-language-value="en" aria-pressed="false">EN</button>
           </div>

@@ -42,6 +42,16 @@ export const editorApi = Object.freeze({
       csrfToken,
     });
   },
+  branding() {
+    return requestJson(`/api/editor/branding?t=${Date.now()}`);
+  },
+  saveBranding(siteName, mainTitle, revision, csrfToken) {
+    return requestJson("/api/editor/branding", {
+      method: "PUT",
+      body: { siteName, mainTitle, revision },
+      csrfToken,
+    });
+  },
   createEnrollment(body, csrfToken) {
     return requestJson("/api/editor/enrollments", {
       method: "POST",

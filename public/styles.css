@@ -21,7 +21,7 @@
   --rose-soft: rgba(250, 81, 120, 0.13);
   --unknown: #75878f;
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.36);
-  --font-ui: "Arimo", "Noto Serif TC", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "Arimo", "Noto Serif SC", serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-family: var(--font-ui);
   font-optical-sizing: auto;
@@ -113,11 +113,11 @@ button {
   height: 54px;
   flex: 0 0 54px;
   place-items: center;
-  border: 1px solid rgba(33, 230, 175, 0.34);
+  border: 0;
   border-radius: 50%;
   overflow: hidden;
-  background: #050505;
-  box-shadow: 0 0 28px rgba(33, 230, 175, 0.11);
+  background: transparent;
+  box-shadow: none;
 }
 
 .brand-mark img {

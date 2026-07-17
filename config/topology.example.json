@@ -1,4 +1,5 @@
 {
+  "site_name": "TopoMari",
   "title": "TopoMari",
   "subtitle": "Example multi-hop latency and packet-loss dashboard",
   "refresh_interval_seconds": 15,

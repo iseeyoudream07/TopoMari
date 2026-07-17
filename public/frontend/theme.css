@@ -134,10 +134,9 @@ body {
   width: 56px;
   height: 56px;
   flex-basis: 56px;
-  border-color: var(--border-strong);
   border-radius: 50%;
-  background: #050505;
-  box-shadow: 0 8px 24px rgba(32, 28, 22, 0.12);
+  background: transparent;
+  box-shadow: none;
 }
 
 .brand-mark img {
@@ -173,6 +172,10 @@ h2 {
   background: color-mix(in srgb, var(--surface-solid) 86%, transparent);
   box-shadow: none;
   color: var(--muted);
+}
+
+.language-switch[hidden] {
+  display: none !important;
 }
 
 .source-chip {
