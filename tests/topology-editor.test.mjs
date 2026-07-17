@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentRegistry } from "../lib/agent-registry.mjs";
 import { ProbeStore } from "../lib/probe-store.mjs";
-import { sanitizeTopologyConfig } from "../lib/topology-config.mjs";
+import { sanitizeBranding, sanitizeTopologyConfig } from "../lib/topology-config.mjs";
 import { TopologyConfigStore, TopologyRevisionConflict } from "../lib/topology-config-store.mjs";
 
 const indexUrl = new URL("../public/index.html", import.meta.url);
@@ -21,6 +21,7 @@ const probeAgentUrl = new URL("../public/agent/probe_agent.py", import.meta.url)
 
 function sampleConfig() {
   return {
+    site_name: "TopoMari site",
     title: "Editor test",
     subtitle: "Safe config",
     refresh_interval_seconds: 15,
@@ -67,6 +68,19 @@ test("topology editor whitelist removes target addresses and arbitrary secrets",
   assert.equal(serialized.includes("plain-token"), false);
   assert.equal(serialized.includes("must-not-survive"), false);
   assert.equal(normalized.routes[0].edges[1].agent_id, "relay-agent");
+  assert.equal(normalized.site_name, "TopoMari site");
+});
+
+test("branding keeps separate safe defaults for the browser title and page heading", () => {
+  assert.deepEqual(sanitizeBranding({}), { siteName: "TopoMari", mainTitle: "TopoMari" });
+  assert.deepEqual(sanitizeBranding({ siteName: "  My site  ", mainTitle: "  My dashboard  " }), {
+    siteName: "My site",
+    mainTitle: "My dashboard",
+  });
+  assert.deepEqual(sanitizeBranding({ siteName: "", mainTitle: "" }), {
+    siteName: "TopoMari",
+    mainTitle: "TopoMari",
+  });
 });
 
 test("editor bindings point to unique elements in the shipped page", async () => {

@@ -9,6 +9,7 @@ import { ProbeRateLimiter, ProbeValidationError, normalizeProbePayload } from ".
 import { ProbeStore } from "./lib/probe-store.mjs";
 import { isDiagnosticApiPath, validateDashboardAuthConfig } from "./lib/security-policy.mjs";
 import { TopologyConfigStore } from "./lib/topology-config-store.mjs";
+import { sanitizeBranding } from "./lib/topology-config.mjs";
 import {
   buildDemoDashboard,
   buildLiveDashboard,
@@ -226,8 +227,35 @@ async function handleEditorApi(request, response, url) {
     });
   }
 
+  if (url.pathname === "/api/editor/branding" && request.method === "GET") {
+    const { config, revision } = await topologyConfigStore.read();
+    const branding = sanitizeBranding(config);
+    return json(response, 200, { ...branding, revision });
+  }
+
   if (!requireEditorCsrf(request, response)) return;
   if (!requireJsonContent(request, response)) return;
+
+  if (url.pathname === "/api/editor/branding") {
+    if (request.method !== "PUT") return methodNotAllowed(response, ["GET", "PUT"]);
+    try {
+      const body = await readJsonBody(request, maxEditorBodyBytes);
+      const current = await topologyConfigStore.read();
+      const branding = sanitizeBranding({
+        siteName: body.siteName ?? current.config.site_name,
+        mainTitle: body.mainTitle ?? current.config.title,
+      });
+      const result = await topologyConfigStore.write({
+        ...current.config,
+        site_name: branding.siteName,
+        title: branding.mainTitle,
+      }, String(body.revision || ""));
+      dashboardCache = { expiresAt: 0, value: null, promise: null };
+      return json(response, 200, { ...branding, revision: result.revision });
+    } catch (error) {
+      throw makeClientError(error);
+    }
+  }
 
   if (url.pathname === "/api/editor/topology") {
     if (request.method !== "PUT") return methodNotAllowed(response, ["PUT"]);

@@ -18,6 +18,8 @@ TopoMari 是一个可以部署在自己服务器上的 Komari 链路拓扑面板
 - 支持简体中文 / English、日间 / 夜间模式和手机页面。
 - 更新面板时自动备份配置、探针身份和历史数据。
 
+页面默认的网站名称和主标题都是 `TopoMari`。后端已预留品牌设置接口：读取使用 `GET /api/editor/branding`，修改使用 `PUT /api/editor/branding`；写入需要启用链路编辑器，并携带 Basic Auth、编辑器 CSRF Token 和当前配置 `revision`。请求体字段为 `siteName`、`mainTitle`、`revision`，以后可以直接接入设置页面。
+
 一条常见线路大致是：
 
 ```text
