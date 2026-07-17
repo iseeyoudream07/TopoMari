@@ -14,6 +14,7 @@ TopoMari is a self-hosted multi-hop topology dashboard for Komari, private TCP p
 - 聚合多个 Komari Ping 任务，作为客户端到中转节点的反向延迟估算。
 - 在中转、出口等来源机运行轻量 Python Agent，测量 TCP 建连耗时。
 - 使用短期单次注册码兑换 Agent Token，面板端只保存 Token 的 SHA-256 哈希。
+- 将 Agent 注册表冗余镜像到持久化数据目录，更新误丢配置时自动恢复原 Token 哈希。
 - 使用 SQLite 保存历史延迟和丢包数据。
 - 在登录后的网页中新增、编辑、删除和保存链路。
 - 为每条 edge 设置独立的延迟与丢包健康阈值。
@@ -62,6 +63,7 @@ ENABLE_TOPOLOGY_EDITOR=true
 
 PROBE_DB_PATH=./data/probes.db
 AGENT_CONFIG_PATH=./config/agents.json
+AGENT_BACKUP_PATH=./data/agents.backup.json
 TOPOLOGY_CONFIG_PATH=./config/topology.json
 PROBE_RETENTION_DAYS=7
 ```
@@ -136,6 +138,17 @@ bash /tmp/install-topology-agent.sh \
 
 `203.0.113.10` 属于文档专用地址段，请替换成实际目标。
 
+### 更新已安装的探针
+
+Dashboard 升级不要求重装或轮换 Agent Token。只有需要更新 Agent 程序或 systemd watchdog 时，才在来源机执行：
+
+```bash
+curl -fsSL https://topology.example.com/agent/update.sh -o /tmp/update-topology-agent.sh
+sudo bash /tmp/update-topology-agent.sh
+```
+
+更新器先用现有配置提交一次真实报告，通过后才替换程序和 unit；`/etc/komari-topology-agent.json`、Token、目标地址和 Agent ID 全部保持不变，启动失败会回滚旧程序。
+
 ## Docker Compose
 
 ```bash
@@ -155,6 +168,25 @@ Compose 只把服务发布到宿主机的 `127.0.0.1:3000`。容器使用非 roo
 ./config -> /app/config
 ./data   -> /app/data
 ```
+
+不要通过新建另一个项目目录来“升级”后只复制拓扑文件；`config/agents.json` 与 `data/` 也是同一份运行时状态。服务会把 Agent 注册表额外镜像到 `data/agents.backup.json`，当主文件意外缺失但 `data/` 仍在时自动恢复。
+
+正式环境统一使用安全更新脚本：
+
+```bash
+cd /opt/TopoMari
+sudo bash scripts/update-dashboard.sh
+```
+
+脚本会先停服务并备份 `.env`、整个 `config/` 和整个 `data/`，校验 Agent 注册表在拉取代码和启动前后完全一致，再确认健康接口恢复。
+
+如果曾经从旧项目目录切换到新目录且漏迁移 Agent 注册表，可在新版本中把旧文件作为恢复源执行：
+
+```bash
+node scripts/recover-agent-registry.mjs /path/to/previous/config/agents.json
+```
+
+恢复命令只补回缺失的 Agent；同名但 Token 哈希不同的记录会保留当前版本并报告冲突，不会让仍在工作的探针掉线。
 
 ## systemd
 

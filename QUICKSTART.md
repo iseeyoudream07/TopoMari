@@ -150,19 +150,25 @@ curl -fsS -u 'your-user:your-password' http://127.0.0.1:3000/api/probes
 
 ## 8. 安全升级
 
-升级前先备份所有运行时状态：
+不要把新版本克隆到另一个目录后只复制 `config/topology.json`。以下四类文件共同构成运行时状态，缺少 `config/agents.json` 会让旧 Agent 持续收到 401：
+
+```text
+.env
+config/topology.json
+config/agents.json
+data/probes.db
+```
+
+在原项目目录使用带保护的更新脚本：
 
 ```bash
 cd /opt/TopoMari
-sudo docker compose down
-sudo tar -C /opt -czf "/root/topomari-backup-$(date +%F-%H%M%S).tar.gz" TopoMari
-
-sudo git pull --ff-only
-sudo chown -R 1000:1000 config data
-sudo docker compose up -d --build --force-recreate
+sudo bash scripts/update-dashboard.sh
 ```
 
-由于运行时配置已被 Git 忽略，正常 `git pull` 不会覆盖 `.env`、真实拓扑、Agent Token 哈希或 SQLite 历史。
+脚本会停机关闭 SQLite，将 `.env`、`config/`、`data/` 备份到 `/var/backups/topomari`，只允许 fast-forward 拉取，对 Agent 注册表做更新前后 SHA-256 指纹校验，重建容器并等待健康接口。任何一步失败都会保留备份并尝试重新启动服务。
+
+新版本还会把 `config/agents.json` 原样镜像到 `data/agents.backup.json`。如果后续更新只误丢主注册表而 `data/` 仍在，服务启动时会自动恢复原 Token 哈希和 edge 权限，不需要重装 Agent。
 
 升级后验证：
 
@@ -172,6 +178,34 @@ sudo docker compose logs --tail=100 komari-topology
 curl -fsS http://127.0.0.1:3000/api/health
 curl -fsS -u 'your-user:your-password' http://127.0.0.1:3000/api/dashboard >/dev/null
 ```
+
+`/api/health` 应包含 `"agentRegistryProtection":"mirrored"`。
+
+### 从旧项目目录补回 Agent 注册表
+
+如果之前从 `/opt/komari-topology-dashboard` 切换到了 `/opt/TopoMari`，而旧目录还在，不要直接覆盖当前 `config/agents.json`，否则新建的 Agent 也会失效。使用合并恢复：
+
+```bash
+cd /opt/TopoMari
+sudo cp /opt/komari-topology-dashboard/config/agents.json config/agents.previous.json
+sudo chown 1000:1000 config/agents.previous.json
+sudo docker compose exec komari-topology \
+  node scripts/recover-agent-registry.mjs /app/config/agents.previous.json
+sudo rm -f config/agents.previous.json
+```
+
+该命令只添加当前缺失的 Agent；同名 Token 冲突不会覆盖当前记录。若旧注册表也已丢失，只能为受影响的 Agent 重新生成一次注册码并在对应来源机重新执行安装命令。
+
+### 更新 Agent 程序（不轮换 Token）
+
+Dashboard 更新本身不需要更新来源机 Agent。需要启用新版 watchdog 时，在每台来源机执行：
+
+```bash
+curl -fsSL https://topology.example.com/agent/update.sh -o /tmp/update-topology-agent.sh
+sudo bash /tmp/update-topology-agent.sh
+```
+
+更新器使用现有 Token 做首报验证，保留 `/etc/komari-topology-agent.json`，失败时回滚旧程序和 systemd unit。
 
 ## 9. 回滚
 
