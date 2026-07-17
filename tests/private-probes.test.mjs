@@ -90,6 +90,31 @@ test("mirrors and restores the Agent registry without rotating tokens", async (c
   assert.equal(mutatedBackup.agents[0].token_hash, hashAgentToken(issued.token));
 });
 
+test("restores an Agent registry when its backup appears after an earlier reload", async (context) => {
+  const directory = await mkdtemp(join(tmpdir(), "komari-agent-late-backup-"));
+  context.after(async () => rm(directory, { recursive: true, force: true }));
+  const filePath = join(directory, "agents.json");
+  const backupPath = join(directory, "data", "agents.backup.json");
+  const registry = new AgentRegistry(filePath, { backupPath, reloadIntervalMs: 0, logger: null });
+
+  assert.deepEqual(await registry.list(), []);
+  await writeAgentConfig(backupPath, {
+    version: 1,
+    agents: [
+      {
+        id: "late-agent",
+        token_hash: hashAgentToken("late-token"),
+        allowed_edges: ["late-edge"],
+        enabled: true,
+      },
+    ],
+  });
+
+  assert.equal((await registry.authenticate("late-agent", "late-token")).id, "late-agent");
+  assert.equal(JSON.parse(await readFile(filePath, "utf8")).agents[0].id, "late-agent");
+  assert.equal((await registry.status()).recoveryCount, 1);
+});
+
 test("validates probe payloads and rate limits noisy agents", () => {
   const now = Date.parse("2026-07-15T12:00:00Z");
   const samples = normalizeProbePayload(
