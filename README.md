@@ -1,30 +1,80 @@
 # TopoMari
 
-TopoMari is a self-hosted multi-hop topology dashboard for Komari, private TCP probes, latency history, packet loss, and route health.
+TopoMari is a self-hosted network-topology dashboard for Komari. It combines Komari latency tasks with authenticated private TCP probes to show multi-hop latency, packet loss, route health, and historical trends in one interface.
 
-这是一个独立于 Komari 原生前端的链路拓扑面板，适合观察：
+> **简体中文：** TopoMari 是面向 Komari 的自托管多跳链路拓扑面板，整合 Komari 延迟任务与认证私有 TCP 探针。界面支持中文 / English、日间 / 夜间模式；完整中文部署流程见 [QUICKSTART.md](QUICKSTART.md)。
 
 ```text
-客户端网络 -> 中转节点 -> 出口节点 -> 公网目标
+Local network -> Relay -> Exit -> Internet target
 ```
 
-主要能力：
+The dashboard includes Chinese and English interfaces, light and dark themes, responsive layouts, and a browser-based route editor. Language and theme preferences are stored only in the browser.
 
-- 读取经过字段白名单处理的 Komari 节点和 Ping 任务。
-- 聚合多个 Komari Ping 任务，作为客户端到中转节点的反向延迟估算。
-- 在中转、出口等来源机运行轻量 Python Agent，测量 TCP 建连耗时。
-- 使用短期单次注册码兑换 Agent Token，面板端只保存 Token 的 SHA-256 哈希。
-- 将 Agent 注册表冗余镜像到持久化数据目录，更新误丢配置时自动恢复原 Token 哈希。
-- 使用 SQLite 保存历史延迟和丢包数据。
-- 在登录后的网页中新增、编辑、删除和保存链路。
-- 为每条 edge 设置独立的延迟与丢包健康阈值。
-- Docker Compose、systemd、Nginx 和 HTTPS 部署支持。
+## Features
 
-浏览器不会获得 Agent Token、探针目标地址、Komari Cookie、Authorization 或 Komari 原始 payload。
+- Multi-route topology view with per-edge latency and packet-loss status
+- Komari Ping task aggregation for reverse-estimated access latency
+- Lightweight Python Agents for source-side TCP connection measurements
+- SQLite history, retention controls, sparklines, and configurable health thresholds
+- Authenticated route editor with atomic writes and revision-conflict protection
+- Single-use enrollment codes for private probe deployment
+- Agent token hashing, explicit rotation, revocation, and recovery support
+- Chinese / English interface and persistent light / dark themes
+- Responsive desktop and mobile layouts
+- Docker Compose, systemd, Nginx, and HTTPS deployment paths
 
-## 快速体验
+The browser API never exposes Komari credentials, Agent tokens, probe target addresses, or raw Komari payloads.
 
-要求 Node.js 22.13 或更高版本。
+## Architecture
+
+```text
+                         +------------------+
+                         |  Komari server   |
+                         +---------+--------+
+                                   |
+                                   | filtered node/task data
+                                   v
++----------------+       +---------+---------+       +----------------+
+| Browser UI     | <---> | TopoMari server   | <---> | SQLite history |
+| static modules |  API  | auth + aggregation|       | probe samples  |
++----------------+       +---------+---------+       +----------------+
+                                   ^
+                                   | authenticated ingest
+                         +---------+---------+
+                         | Private TCP Agents|
+                         +-------------------+
+```
+
+Frontend and backend code are intentionally separated:
+
+```text
+public/
+  index.html                  Page structure and accessible controls
+  app.js                      Dashboard rendering and refresh orchestration
+  editor.js                   Route editor UI
+  sparkline.js                Dependency-free trend rendering
+  styles.css                  Layout and component structure
+  frontend/
+    api-client.js             Browser-to-server API boundary
+    i18n.js                   Chinese / English messages
+    preferences.js            Language and theme persistence
+    theme.css                 Light / dark design tokens and visual layer
+
+server.mjs                    HTTP server and route registration
+lib/                          Backend domain, security, storage, and Komari logic
+scripts/                      Operations, recovery, and release checks
+```
+
+The frontend uses native browser modules and has no build step. Visual changes can usually be made in `public/frontend/theme.css`; API changes remain isolated in `public/frontend/api-client.js` and the backend.
+
+## Requirements
+
+- Node.js 22.13 or newer
+- Python 3 on hosts running private probe Agents
+- A Komari instance for live mode
+- HTTPS for production Agent enrollment and reporting
+
+## Quick start
 
 ```bash
 git clone https://github.com/iseeyoudream07/TopoMari.git
@@ -34,17 +84,13 @@ cp config/topology.example.json config/topology.json
 npm start
 ```
 
-未配置 `KOMARI_BASE_URL` 时，服务自动进入动画演示模式：
+Open `http://127.0.0.1:3000`.
 
-```text
-http://127.0.0.1:3000
-```
+When `KOMARI_BASE_URL` is not configured, TopoMari starts in demo mode with synthetic Alpha and Beta nodes. Runtime topology and Agent files are ignored by Git.
 
-仓库中的 [config/topology.example.json](config/topology.example.json) 只包含虚构的 Alpha/Beta 示例节点，不对应任何真实服务器。运行时配置 `config/topology.json` 已被 Git 忽略。
+## Live configuration
 
-## 正式环境配置
-
-编辑 `.env`：
+Configure the service in `.env`:
 
 ```dotenv
 KOMARI_BASE_URL=https://status.example.com/
@@ -55,7 +101,7 @@ DEMO_MODE=false
 HOST=127.0.0.1
 PORT=3000
 
-DASHBOARD_USER=your-user
+DASHBOARD_USER=topomari
 DASHBOARD_PASSWORD=replace-with-a-long-random-password
 ALLOW_UNAUTHENTICATED_DASHBOARD=false
 ENABLE_DIAGNOSTIC_API=false
@@ -68,139 +114,77 @@ TOPOLOGY_CONFIG_PATH=./config/topology.json
 PROBE_RETENTION_DAYS=7
 ```
 
-live 模式默认要求应用自身配置 Basic Auth。`ENABLE_TOPOLOGY_EDITOR=true` 只有在用户名和密码都已配置时才会启用。
+Live mode requires TopoMari Basic Auth by default. The route editor is enabled only when both dashboard credentials and `ENABLE_TOPOLOGY_EDITOR=true` are configured.
 
-如果 Komari 需要登录态，可以在服务端环境中配置 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`；不要把真实值提交到 Git。
+If Komari requires an authenticated session, set `KOMARI_COOKIE` or `KOMARI_AUTHORIZATION` in the server environment. Never commit real credentials.
 
-## 配置链路
+## Route editor
 
-启动后点击右上角“管理链路”：
+After authentication, open **Manage routes** in the dashboard:
 
-1. 从经过字段筛选的 Komari 节点列表中选择中转和出口节点。
-2. 为第一段选择一个或多个 Komari Ping 任务。
-3. 为私有探针 edge 填写唯一的 `probe_id`、显示名称和 `agent_id`。
-4. 根据链路距离设置可选的健康阈值。
-5. 保存并应用配置。
+1. Select the relay and exit nodes from the filtered Komari inventory.
+2. Assign one or more Komari Ping tasks to the access edge.
+3. Configure unique `probe_id` and `agent_id` values for private edges.
+4. Optionally override latency and packet-loss thresholds per edge.
+5. Save and apply the topology.
 
-默认示例中的 `relay-alpha`、`exit-alpha` 等 ID 必须替换成你自己的 Komari 节点 ID，才能用于 live 模式。
+Topology configuration stores route identifiers but not probe target addresses. A target address entered in the deployment form is used to generate the Agent command and is saved only on the source host.
 
-拓扑配置只保存链路标识，不保存探针目标 IP 或端口。目标地址只在浏览器生成部署命令时使用，并最终写入来源机本地的 `/etc/komari-topology-agent.json`。
+## Private probes
 
-## 部署私有探针
+The recommended deployment path is **Manage routes -> Private probe deployment**:
 
-推荐在网页“管理链路 → 私有探针一键部署”中生成安装命令。流程如下：
+1. TopoMari creates a single-use enrollment code valid for 15 minutes.
+2. The source host exchanges the code for an Agent token over HTTPS.
+3. The installer performs a real measurement and requires `202 Accepted` from TopoMari.
+4. The systemd service is installed only after the first report succeeds.
 
-1. 面板生成 15 分钟有效、只能使用一次的注册码。
-2. 来源机通过 HTTPS 兑换长期 Agent Token。
-3. 安装器先执行一次真实测量，并要求面板返回 `202 Accepted`。
-4. 首报成功后才安装并启动 systemd 服务。
-
-看到下面两行才表示安装完成：
+Successful installation ends with:
 
 ```text
 First private probe report accepted.
 Private probe installed and reporting
 ```
 
-安装器默认拒绝通过 HTTP 传输 Token。生产环境应先配置 HTTPS。
-
-### 手动 Token 模式
-
-如需离线或手动管理，可以从当前拓扑自动创建尚不存在的 Agent：
+Agents can also be managed from the command line:
 
 ```bash
 npm run agents:bootstrap
-```
-
-脚本会读取所有同时包含 `probe_id` 与 `agent_id` 的 edge，并为每个新 Agent 显示一次 Token。也可以逐个管理：
-
-```bash
-npm run agent:create -- relay-alpha-agent relay-alpha-to-exit-alpha
+npm run agent:create -- <agent-id> <edge-id>
 npm run agent:list
-npm run agent:rotate -- relay-alpha-agent
-npm run agent:revoke -- relay-alpha-agent
-npm run agent:enable -- relay-alpha-agent
+npm run agent:rotate -- <agent-id>
+npm run agent:revoke -- <agent-id>
+npm run agent:enable -- <agent-id>
 ```
 
-手动安装示例：
-
-```bash
-curl -fsSL https://topology.example.com/agent/install.sh -o /tmp/install-topology-agent.sh
-chmod +x /tmp/install-topology-agent.sh
-
-bash /tmp/install-topology-agent.sh \
-  --server-url https://topology.example.com \
-  --agent-id relay-alpha-agent \
-  --edge-id relay-alpha-to-exit-alpha \
-  --target-host 203.0.113.10 \
-  --target-port 443
-```
-
-`203.0.113.10` 属于文档专用地址段，请替换成实际目标。
-
-### 更新已安装的探针
-
-Dashboard 升级不要求重装或轮换 Agent Token。只有需要更新 Agent 程序或 systemd watchdog 时，才在来源机执行：
+Installed Agents can be updated without changing their token or target configuration:
 
 ```bash
 curl -fsSL https://topology.example.com/agent/update.sh -o /tmp/update-topology-agent.sh
 sudo bash /tmp/update-topology-agent.sh
 ```
 
-更新器先用现有配置提交一次真实报告，通过后才替换程序和 unit；`/etc/komari-topology-agent.json`、Token、目标地址和 Agent ID 全部保持不变，启动失败会回滚旧程序。
+## Deployment
 
-## Docker Compose
+### Docker Compose
 
 ```bash
 cp .env.example .env
 cp config/topology.example.json config/topology.json
-nano .env
-sudo chown -R 1000:1000 config data
 docker compose up -d --build
 docker compose logs -f komari-topology
 ```
 
-Compose 只把服务发布到宿主机的 `127.0.0.1:3000`。容器使用非 root 用户、只读根文件系统、`no-new-privileges`，并移除全部 Linux capabilities。
+The Compose service binds to `127.0.0.1:3000`. Persistent state is stored in `config/` and `data/`.
 
-持久化目录：
-
-```text
-./config -> /app/config
-./data   -> /app/data
-```
-
-不要通过新建另一个项目目录来“升级”后只复制拓扑文件；`config/agents.json` 与 `data/` 也是同一份运行时状态。服务会把 Agent 注册表额外镜像到 `data/agents.backup.json`，当主文件意外缺失但 `data/` 仍在时自动恢复。
-
-正式环境统一使用安全更新脚本：
-
-```bash
-cd /opt/TopoMari
-sudo bash scripts/update-dashboard.sh
-```
-
-脚本会先停服务并备份 `.env`、整个 `config/` 和整个 `data/`，校验 Agent 注册表在拉取代码和启动前后完全一致，再确认健康接口恢复。
-
-如果曾经从旧项目目录切换到新目录且漏迁移 Agent 注册表，可在新版本中把旧文件作为恢复源执行：
-
-```bash
-node scripts/recover-agent-registry.mjs /path/to/previous/config/agents.json
-```
-
-恢复命令只补回缺失的 Agent；同名但 Token 哈希不同的记录会保留当前版本并报告冲突，不会让仍在工作的探针掉线。
-
-## systemd
-
-项目放在 `/opt` 等非 home 目录并配置好 `.env` 后执行：
+### systemd
 
 ```bash
 sudo bash scripts/install-dashboard-service.sh
 sudo systemctl status komari-topology-dashboard --no-pager
-sudo journalctl -u komari-topology-dashboard -f
 ```
 
-脚本会创建无登录权限的专用用户，并限制服务只能写入项目的 `config/` 和 `data/` 目录。
-
-## Nginx 与 HTTPS
+### Nginx
 
 ```nginx
 server {
@@ -218,23 +202,23 @@ server {
 }
 ```
 
-完整部署步骤见 [QUICKSTART.md](QUICKSTART.md)。
+See [QUICKSTART.md](QUICKSTART.md) for the complete Ubuntu and Docker deployment flow, including HTTPS, probe installation, upgrades, and rollback.
 
-## 健康阈值
+## Health thresholds
 
-默认规则：
+Default status thresholds:
 
-- 平均延迟达到 150ms 或丢包率高于 0%：`warning`
-- 平均延迟达到 250ms 或丢包率达到 20%：`degraded`
+- `warning`: average latency at least 150 ms or packet loss above 0%
+- `degraded`: average latency at least 250 ms or packet loss at least 20%
 
-单条 edge 可以覆盖默认值：
+An edge can override the defaults:
 
 ```json
 {
-  "from": "relay-alpha",
-  "to": "exit-alpha",
-  "probe_id": "relay-alpha-to-exit-alpha",
-  "agent_id": "relay-alpha-agent",
+  "from": "relay-a",
+  "to": "exit-a",
+  "probe_id": "relay-a-to-exit-a",
+  "agent_id": "relay-a-agent",
   "health_thresholds": {
     "warning_latency_ms": 250,
     "degraded_latency_ms": 400,
@@ -244,29 +228,29 @@ server {
 }
 ```
 
-warning 阈值必须低于对应的 degraded 阈值。
+Each warning threshold must be lower than its degraded threshold.
 
 ## API
 
-| 接口 | 认证 | 用途 |
+| Endpoint | Authentication | Purpose |
 |---|---|---|
-| `GET /api/health` | 无 | 后端状态 |
-| `GET /api/dashboard` | Basic Auth（live 默认必需） | 完整拓扑快照 |
-| `GET /api/probes` | Basic Auth | Agent 与 edge 接收状态 |
-| `GET /api/edge-stats?probe_id=...` | Basic Auth | 私有链路统计 |
-| `GET /api/nodes` | Basic Auth + 诊断开关 | 筛选后的 Komari 节点 |
-| `GET /api/ping-tasks` | Basic Auth + 诊断开关 | 筛选后的 Ping 任务 |
-| `GET /api/editor/bootstrap` | Basic Auth + 编辑器开关 | 编辑器初始化数据 |
-| `PUT /api/editor/topology` | Basic Auth + CSRF | 原子保存拓扑 |
-| `POST /api/editor/enrollments` | Basic Auth + CSRF | 签发一次性注册码 |
-| `POST /api/enroll` | 一次性注册码 | 兑换 Agent Token |
-| `POST /api/ingest` | Agent Bearer Token | 私有探针上报 |
+| `GET /api/health` | None | Service health |
+| `GET /api/dashboard` | Basic Auth in live mode | Complete dashboard snapshot |
+| `GET /api/probes` | Basic Auth | Agent and edge ingest status |
+| `GET /api/edge-stats?probe_id=...` | Basic Auth | Private-edge history |
+| `GET /api/nodes` | Basic Auth + diagnostics enabled | Filtered Komari nodes |
+| `GET /api/ping-tasks` | Basic Auth + diagnostics enabled | Filtered Komari tasks |
+| `GET /api/editor/bootstrap` | Basic Auth + editor enabled | Route editor bootstrap |
+| `PUT /api/editor/topology` | Basic Auth + CSRF | Atomic topology update |
+| `POST /api/editor/enrollments` | Basic Auth + CSRF | Single-use enrollment code |
+| `POST /api/enroll` | Enrollment code | Agent token exchange |
+| `POST /api/ingest` | Agent Bearer token | Private probe ingest |
 
-`/api/nodes` 和 `/api/ping-tasks` 默认关闭。服务不会提供透传 Komari 原始 payload 的接口。
+Diagnostic node and task endpoints are disabled by default. No endpoint proxies raw Komari payloads.
 
-## 安全与隐私
+## Security and state
 
-下面这些运行时文件已被 `.gitignore` 和 `.dockerignore` 排除：
+The following runtime files are excluded from Git and container build context:
 
 ```text
 .env
@@ -275,21 +259,22 @@ config/agents.json
 data/*
 ```
 
-公开仓库前仍应执行自己的秘密扫描，并避免使用 `git add -f` 强制添加这些文件。安全问题请参阅 [SECURITY.md](SECURITY.md)。
+Agent tokens are returned once and stored as SHA-256 hashes. The Agent registry is mirrored to `data/agents.backup.json` so a missing primary registry can be recovered without invalidating existing Agents.
 
-## 检查与测试
+For vulnerability reporting, see [SECURITY.md](SECURITY.md).
+
+## Development
 
 ```bash
+npm run dev
 npm run check
 npm test
 npm run audit:public
 ```
 
-项目没有第三方运行时依赖；服务器、存储和探针均使用 Node.js/Python 标准库。
+TopoMari has no third-party runtime dependencies. The server, storage layer, browser UI, and Agent use platform or standard-library APIs.
 
-## 参与贡献
-
-提交修改前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting changes.
 
 ## License
 

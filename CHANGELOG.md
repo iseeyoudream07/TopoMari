@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+- Refined the dashboard with a quieter warm-neutral visual system inspired by minimalist Komari interfaces.
+- Added persistent Chinese / English language controls and light / dark themes across the dashboard and route editor.
+- Separated browser API access, translations, preferences, and theme tokens into maintainable frontend modules.
+- Reworked the README around reusable architecture, deployment, security, and contributor guidance.
+
 ## 2.4.1 - 2026-07-17
 
 - Mirrored the Agent credential registry into the persistent data directory and automatically restore it when `config/agents.json` is accidentally lost.

@@ -1,3 +1,5 @@
+/* Structural component styles. Final light/dark visual overrides live in frontend/theme.css. */
+
 :root {
   color-scheme: dark;
   --bg: #050b0e;

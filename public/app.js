@@ -1,3 +1,6 @@
+import { dashboardApi } from "./frontend/api-client.js";
+import { getLocale, t } from "./frontend/i18n.js";
+import { initPreferences } from "./frontend/preferences.js";
 import { initTopologyEditor } from "./editor.js";
 import { renderSparkline } from "./sparkline.js";
 
@@ -24,6 +27,9 @@ const elements = {
 let refreshTimer = null;
 let loading = false;
 let lastDashboard = null;
+let lastError = null;
+
+const knownStatuses = new Set(["healthy", "warning", "degraded", "failed", "unconfigured", "unknown"]);
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -38,7 +44,7 @@ function formatNumber(value, digits = 0) {
   if (value === null || value === undefined || value === "") return "—";
   const number = Number(value);
   if (!Number.isFinite(number)) return "—";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(getLocale(), {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(number);
@@ -57,14 +63,7 @@ function formatLoss(value) {
 }
 
 function statusLabel(status) {
-  return {
-    healthy: "Healthy",
-    warning: "Watch",
-    degraded: "Degraded",
-    failed: "Failed",
-    unconfigured: "No task",
-    unknown: "No data",
-  }[status] || "Unknown";
+  return t(`status.${knownStatuses.has(status) ? status : "unknown"}`);
 }
 
 function statusRank(status) {
@@ -91,15 +90,19 @@ function nodeIcon(type) {
 function measurementLabel(edge) {
   let label;
   if (edge.task?.type === "private" || edge.probe_id) {
-    label = `${edge.task?.name || edge.probe_name || "Private probe"} · ${edge.probe_id || "private"}`;
+    label = `${edge.task?.name || edge.probe_name || t("measurement.privateProbe")} · ${edge.probe_id || "private"}`;
   } else {
-    label = edge.task?.name || edge.task_name || edge.task_id || "Unconfigured edge";
+    label = edge.task?.name || edge.task_name || edge.task_id || t("measurement.unconfigured");
   }
-  return edge.measurement_direction === "reverse" ? `${label} · Reverse estimate` : label;
+  return edge.measurement_direction === "reverse" ? `${label} · ${t("measurement.reverse")}` : label;
 }
 
 function renderTopologyNode(node) {
-  const stateText = node.virtual ? node.region || "Virtual endpoint" : node.online ? node.region || "Online" : "Offline";
+  const stateText = node.virtual
+    ? node.region || t("node.virtualEndpoint")
+    : node.online
+      ? node.region || t("common.online")
+      : t("common.offline");
   return `
     <div class="topology-node ${node.online ? "" : "is-offline"}" data-type="${escapeHtml(node.type || "server")}" aria-label="${escapeHtml(node.name)}, ${escapeHtml(stateText)}">
       <div class="node-icon">${nodeIcon(node.type)}</div>
@@ -116,7 +119,7 @@ function renderConnector(edge) {
   const lossClass = Number(loss) > 0 ? "has-loss" : "";
   const taskName = measurementLabel(edge);
   const error = edge.error ? ` · ${edge.error}` : "";
-  const aria = `${taskName}: ${formatLatency(edge.stats?.latest)}, loss ${formatLoss(loss)}${error}`;
+  const aria = `${taskName}: ${formatLatency(edge.stats?.latest)}, ${t("link.loss")} ${formatLoss(loss)}${error}`;
   return `
     <div class="edge-connector" data-status="${escapeHtml(status)}" aria-label="${escapeHtml(aria)}">
       <div class="edge-metrics">
@@ -136,7 +139,7 @@ function routeHealth(route) {
 
 function renderRoutes(routes) {
   if (!routes.length) {
-    elements.routes.innerHTML = '<div class="empty-state">No topology routes are configured.</div>';
+    elements.routes.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.routes"))}</div>`;
     return;
   }
 
@@ -177,10 +180,15 @@ function renderLinkHealth(routes) {
   });
 
   if (!edges.length) {
-    elements.links.innerHTML = '<div class="empty-state">No link measurements available.</div>';
+    elements.links.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.links"))}</div>`;
     return;
   }
 
+  const sparkLabels = {
+    empty: t("spark.empty"),
+    collecting: (value) => t("spark.collecting", { value }),
+    range: (min, max) => t("spark.range", { min, max }),
+  };
   elements.links.innerHTML = edges
     .map((edge) => {
       const status = edge.stats?.status || "unknown";
@@ -194,12 +202,12 @@ function renderLinkHealth(routes) {
           </div>
           <div class="link-stat">
             <strong class="${latencyClass}">${escapeHtml(formatLatency(edge.stats?.latest))}</strong>
-            <span>avg ${escapeHtml(formatLatency(edge.stats?.avg))}</span>
+            <span>${escapeHtml(t("link.average", { value: formatLatency(edge.stats?.avg) }))}</span>
           </div>
-          ${renderSparkline(edge.stats?.history, status, formatLatency)}
+          ${renderSparkline(edge.stats?.history, status, formatLatency, sparkLabels)}
           <div class="link-stat">
             <strong class="${lossClass}">${escapeHtml(formatLoss(edge.stats?.loss))}</strong>
-            <span>loss</span>
+            <span>${escapeHtml(t("link.loss"))}</span>
           </div>
           <span class="status-badge ${escapeHtml(status)}">${escapeHtml(statusLabel(status))}</span>
         </div>`;
@@ -209,48 +217,53 @@ function renderLinkHealth(routes) {
 
 function renderNodes(nodes) {
   if (!nodes.length) {
-    elements.nodes.innerHTML = '<div class="empty-state">No monitored nodes in the configured routes.</div>';
+    elements.nodes.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.nodes"))}</div>`;
     return;
   }
   elements.nodes.innerHTML = nodes
-    .map(
-      (node) => `
+    .map((node) => {
+      const state = node.online ? t("common.online") : t("common.offline");
+      return `
         <div class="asset-node ${node.online ? "" : "is-offline"}">
           <div class="asset-node-header">
             <div class="asset-node-name">
               <strong>${escapeHtml(node.name)}</strong>
               <span>${escapeHtml(node.region || node.os || "Komari Agent")}</span>
             </div>
-            <span class="node-online-dot" aria-label="${node.online ? "Online" : "Offline"}"></span>
+            <span class="node-online-dot" aria-label="${escapeHtml(state)}"></span>
           </div>
           <span class="node-id">${escapeHtml(node.id)}</span>
-        </div>`,
-    )
+        </div>`;
+    })
     .join("");
 }
 
 function renderSummary(summary) {
   elements.statRoutes.textContent = formatNumber(summary.routes);
-  elements.statEdges.textContent = `${formatNumber(summary.edges)} measured edges`;
+  elements.statEdges.textContent = t("stats.measuredEdges", { count: formatNumber(summary.edges) });
   elements.statNodes.textContent = `${formatNumber(summary.onlineNodes)} / ${formatNumber(summary.nodes)}`;
-  elements.statNodeContext.textContent = summary.onlineNodes === summary.nodes ? "All configured nodes online" : `${summary.nodes - summary.onlineNodes} node(s) offline`;
+  elements.statNodeContext.textContent = summary.onlineNodes === summary.nodes
+    ? t("stats.allNodesOnline")
+    : t("stats.nodesOffline", { count: summary.nodes - summary.onlineNodes });
   elements.statLatency.textContent = formatLatency(summary.averageLatency);
   elements.statLoss.textContent = formatLoss(summary.averageLoss);
 }
 
 function renderDashboard(dashboard) {
   lastDashboard = dashboard;
+  lastError = null;
   const { meta, summary, routes, nodes } = dashboard;
   document.title = meta.title || "TopoMari";
   elements.title.textContent = meta.title || "TopoMari";
-  elements.subtitle.textContent = meta.subtitle || "Multi-hop latency and packet-loss visibility";
+  elements.subtitle.textContent = meta.subtitle || t("brand.defaultSubtitle");
   elements.sourceChip.dataset.mode = meta.mode;
-  elements.sourceLabel.textContent = {
-    live: "Komari Live",
-    hybrid: "Komari + Private Probes",
-    demo: "Animated Demo",
-  }[meta.mode] || "Connected";
-  elements.updated.textContent = `Updated ${new Date(meta.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+  elements.sourceLabel.textContent = t({ live: "source.live", hybrid: "source.hybrid", demo: "source.demo" }[meta.mode] || "source.connected");
+  const updatedTime = new Intl.DateTimeFormat(getLocale(), {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(meta.generatedAt));
+  elements.updated.textContent = t("updated.at", { time: updatedTime });
   renderSummary(summary);
   renderRoutes(routes || []);
   renderLinkHealth(routes || []);
@@ -260,14 +273,15 @@ function renderDashboard(dashboard) {
 }
 
 function showError(error) {
+  lastError = error;
   elements.sourceChip.dataset.mode = "error";
-  elements.sourceLabel.textContent = "Connection Error";
+  elements.sourceLabel.textContent = t("source.error");
   elements.errorMessage.textContent = error.message || String(error);
   elements.errorPanel.hidden = false;
   if (!lastDashboard) {
-    elements.routes.innerHTML = '<div class="empty-state">No dashboard snapshot is available.</div>';
-    elements.links.innerHTML = '<div class="empty-state">Link data is unavailable.</div>';
-    elements.nodes.innerHTML = '<div class="empty-state">Node data is unavailable.</div>';
+    elements.routes.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.snapshot"))}</div>`;
+    elements.links.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.linkUnavailable"))}</div>`;
+    elements.nodes.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.nodeUnavailable"))}</div>`;
   }
 }
 
@@ -282,13 +296,7 @@ async function loadDashboard() {
   elements.refreshButton.disabled = true;
   elements.refreshButton.classList.add("is-loading");
   try {
-    const response = await fetch(`/api/dashboard?t=${Date.now()}`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || `Dashboard request failed (${response.status})`);
-    renderDashboard(payload);
+    renderDashboard(await dashboardApi.snapshot());
   } catch (error) {
     showError(error);
     scheduleRefresh(15);
@@ -299,6 +307,8 @@ async function loadDashboard() {
   }
 }
 
+initPreferences();
+
 elements.refreshButton.addEventListener("click", () => {
   clearTimeout(refreshTimer);
   loadDashboard();
@@ -306,6 +316,12 @@ elements.refreshButton.addEventListener("click", () => {
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") loadDashboard();
+});
+
+document.addEventListener("topomari:languagechange", () => {
+  const activeError = lastError;
+  if (lastDashboard) renderDashboard(lastDashboard);
+  if (activeError) showError(activeError);
 });
 
 loadDashboard();
