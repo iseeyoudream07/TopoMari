@@ -22,6 +22,7 @@ const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = resolve(rootDir, "public");
 const configPath = resolve(rootDir, process.env.TOPOLOGY_CONFIG_PATH || "config/topology.json");
 const agentConfigPath = resolve(rootDir, process.env.AGENT_CONFIG_PATH || "config/agents.json");
+const agentBackupPath = resolve(rootDir, process.env.AGENT_BACKUP_PATH || "data/agents.backup.json");
 const probeDatabasePath = resolve(rootDir, process.env.PROBE_DB_PATH || "data/probes.db");
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
@@ -64,7 +65,7 @@ const probeStore = new ProbeStore({
   filePath: probeDatabasePath,
   retentionDays: Number(process.env.PROBE_RETENTION_DAYS || 7),
 });
-const agentRegistry = new AgentRegistry(agentConfigPath);
+const agentRegistry = new AgentRegistry(agentConfigPath, { backupPath: agentBackupPath });
 const topologyConfigStore = new TopologyConfigStore(configPath);
 const ingestRateLimiter = new ProbeRateLimiter({
   limit: Number(process.env.INGEST_RATE_LIMIT_PER_MINUTE || 120),
@@ -73,6 +74,11 @@ const enrollmentRateLimiter = new ProbeRateLimiter({
   limit: Number(process.env.ENROLL_RATE_LIMIT_PER_MINUTE || 20),
 });
 const editorCsrfToken = randomBytes(32).toString("base64url");
+
+// Create the redundant registry copy before serving requests. If an upgrade
+// accidentally drops config/agents.json while data/ survives, reload restores
+// the exact token hashes and edge permissions from this copy automatically.
+await agentRegistry.reload(true);
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -215,6 +221,7 @@ async function handleEditorApi(request, response, url) {
       nodes: inventory.nodes,
       tasks: inventory.tasks,
       agents,
+      agentRegistry: await agentRegistry.status(),
       probeEdges: probeStore.getOverview(),
     });
   }
@@ -314,6 +321,7 @@ async function handleApi(request, response, url) {
       mode: demoMode ? "demo" : "live",
       komariConfigured: client.configured,
       probeStorage: "sqlite",
+      agentRegistryProtection: "mirrored",
       timestamp: new Date().toISOString(),
     });
   }
@@ -349,6 +357,7 @@ async function handleApi(request, response, url) {
     return json(response, 200, {
       agents: await agentRegistry.list(),
       edges: probeStore.getOverview(),
+      registry: await agentRegistry.status(),
     });
   }
 

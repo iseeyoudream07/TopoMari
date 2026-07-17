@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import signal
 import socket
 import ssl
@@ -14,11 +15,26 @@ from pathlib import Path
 
 
 STOP_EVENT = threading.Event()
+AGENT_VERSION = "1.1.0"
 
 
 def log(message):
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     print(f"[{timestamp}] {message}", flush=True)
+
+
+def systemd_notify(message):
+    address = os.environ.get("NOTIFY_SOCKET", "")
+    if not address:
+        return
+    if address.startswith("@"):
+        address = f"\0{address[1:]}"
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as notifier:
+            notifier.connect(address)
+            notifier.sendall(message.encode("utf-8"))
+    except OSError as error:
+        log(f"systemd notification failed: {type(error).__name__}: {error}")
 
 
 def load_config(path):
@@ -67,7 +83,7 @@ def submit(config, samples):
         headers={
             "Authorization": f"Bearer {config['token']}",
             "Content-Type": "application/json",
-            "User-Agent": "TopoMari-Probe/1.0",
+            "User-Agent": f"TopoMari-Probe/{AGENT_VERSION}",
             "X-Agent-ID": config["agent_id"],
         },
     )
@@ -83,13 +99,27 @@ def submit(config, samples):
 
 
 def run_cycle(config):
-    samples = [measure_tcp(probe, config["timeout_seconds"]) for probe in config["probes"]]
+    samples = []
+    for probe in config["probes"]:
+        samples.append(measure_tcp(probe, config["timeout_seconds"]))
+        systemd_notify("WATCHDOG=1\nSTATUS=Measuring configured probe targets")
     submit(config, samples)
     summary = ", ".join(
         f"{sample['edge_id']}={sample.get('latency_ms', 'failed')}ms" if sample["success"] else f"{sample['edge_id']}=failed"
         for sample in samples
     )
     log(f"submitted {summary}")
+
+
+def wait_for_next_cycle(delay_seconds):
+    deadline = time.monotonic() + max(0, delay_seconds)
+    while not STOP_EVENT.is_set():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        STOP_EVENT.wait(min(30, remaining))
+        if not STOP_EVENT.is_set():
+            systemd_notify("WATCHDOG=1\nSTATUS=Waiting for the next probe cycle")
 
 
 def stop(_signal_number, _frame):
@@ -105,20 +135,26 @@ def main():
     config = load_config(args.config)
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
+    systemd_notify(f"READY=1\nSTATUS=TopoMari probe {AGENT_VERSION} running")
 
-    while not STOP_EVENT.is_set():
-        cycle_started = time.monotonic()
-        try:
-            run_cycle(config)
-        except Exception as error:
-            log(f"cycle failed: {type(error).__name__}: {error}")
+    try:
+        while not STOP_EVENT.is_set():
+            cycle_started = time.monotonic()
+            try:
+                run_cycle(config)
+            except Exception as error:
+                log(f"cycle failed: {type(error).__name__}: {error}")
+                if args.once:
+                    return 1
+            finally:
+                systemd_notify("WATCHDOG=1\nSTATUS=Probe cycle completed")
             if args.once:
-                return 1
-        if args.once:
-            return 0
-        elapsed = time.monotonic() - cycle_started
-        STOP_EVENT.wait(max(1, config["interval_seconds"] - elapsed))
-    return 0
+                return 0
+            elapsed = time.monotonic() - cycle_started
+            wait_for_next_cycle(max(1, config["interval_seconds"] - elapsed))
+        return 0
+    finally:
+        systemd_notify("STOPPING=1\nSTATUS=TopoMari probe stopping")
 
 
 if __name__ == "__main__":

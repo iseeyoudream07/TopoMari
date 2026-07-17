@@ -14,6 +14,8 @@ const indexUrl = new URL("../public/index.html", import.meta.url);
 const editorUrl = new URL("../public/editor.js", import.meta.url);
 const stylesUrl = new URL("../public/styles.css", import.meta.url);
 const installerUrl = new URL("../public/agent/install.sh", import.meta.url);
+const agentUpdaterUrl = new URL("../public/agent/update.sh", import.meta.url);
+const dashboardUpdaterUrl = new URL("../scripts/update-dashboard.sh", import.meta.url);
 const probeAgentUrl = new URL("../public/agent/probe_agent.py", import.meta.url);
 
 function sampleConfig() {
@@ -90,6 +92,8 @@ test("probe installer verifies the first report and one-shot failures exit nonze
   const installer = await readFile(installerUrl, "utf8");
   assert.match(installer, /probe_agent\.py" --config "\$CONFIG_FILE" --once/);
   assert.match(installer, /systemctl is-active --quiet komari-topology-agent\.service/);
+  assert.match(installer, /Type=notify/);
+  assert.match(installer, /WatchdogSec=120/);
 
   const probeAgentPath = fileURLToPath(probeAgentUrl);
   const python = `
@@ -101,6 +105,8 @@ spec = importlib.util.spec_from_file_location("probe_agent", ${JSON.stringify(pr
 agent = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(agent)
 agent.load_config = lambda _path: {"interval_seconds": 30, "timeout_seconds": 5}
+notifications = []
+agent.systemd_notify = notifications.append
 
 def fail(_config):
     raise RuntimeError("submit failed")
@@ -110,6 +116,9 @@ sys.argv = ["probe_agent.py", "--config", "ignored", "--once"]
 assert agent.main() == 1
 agent.run_cycle = lambda _config: None
 assert agent.main() == 0
+assert any(message.startswith("READY=1") for message in notifications)
+assert any(message.startswith("WATCHDOG=1") for message in notifications)
+assert any(message.startswith("STOPPING=1") for message in notifications)
 
 class Connection:
     def __enter__(self):
@@ -124,6 +133,22 @@ assert "timestamp" not in sample
 `;
   const result = spawnSync("python3", ["-c", python], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
+test("Agent and dashboard updaters preserve credentials and runtime state", async () => {
+  const [agentUpdater, dashboardUpdater] = await Promise.all([
+    readFile(agentUpdaterUrl, "utf8"),
+    readFile(dashboardUpdaterUrl, "utf8"),
+  ]);
+  assert.match(agentUpdater, /--config "\$CONFIG_FILE" --once/);
+  assert.match(agentUpdater, /Existing config, token, targets, and Agent ID were preserved/);
+  assert.doesNotMatch(agentUpdater, /enrollment-code/);
+  assert.match(agentUpdater, /WatchdogSec=120/);
+
+  assert.match(dashboardUpdater, /tar -C "\$PROJECT_DIR" -czf "\$BACKUP_FILE" \.env config data/);
+  assert.match(dashboardUpdater, /git -C "\$PROJECT_DIR" pull --ff-only/);
+  assert.match(dashboardUpdater, /AGENT_HASH_AFTER_PULL/);
+  assert.match(dashboardUpdater, /probe history exists but config\/agents\.json is missing/);
 });
 
 test("topology writes are atomic and reject stale revisions", async (context) => {

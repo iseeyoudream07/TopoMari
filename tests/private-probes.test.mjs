@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { AgentRegistry, hashAgentToken, writeAgentConfig } from "../lib/agent-registry.mjs";
@@ -60,6 +60,34 @@ test("authenticates hashed agent tokens and enforces allowed edges", async (cont
   const registry = new AgentRegistry(filePath, { reloadIntervalMs: 0 });
   assert.equal((await registry.authenticate("relay-agent", "secret-token")).id, "relay-agent");
   assert.equal(await registry.authenticate("relay-agent", "wrong-token"), null);
+});
+
+test("mirrors and restores the Agent registry without rotating tokens", async (context) => {
+  const directory = await mkdtemp(join(tmpdir(), "komari-agent-backup-"));
+  context.after(async () => rm(directory, { recursive: true, force: true }));
+  const filePath = join(directory, "agents.json");
+  const backupPath = join(directory, "data", "agents.backup.json");
+  const registry = new AgentRegistry(filePath, { backupPath, reloadIntervalMs: 0, logger: null });
+  const issued = await registry.issueToken("relay-agent", ["relay-to-exit"]);
+
+  const backup = JSON.parse(await readFile(backupPath, "utf8"));
+  assert.equal(backup.agents[0].token_hash, hashAgentToken(issued.token));
+  await rm(filePath);
+
+  const recovered = new AgentRegistry(filePath, { backupPath, reloadIntervalMs: 0, logger: null });
+  assert.equal((await recovered.authenticate("relay-agent", issued.token)).id, "relay-agent");
+  assert.equal(JSON.parse(await readFile(filePath, "utf8")).agents[0].id, "relay-agent");
+  const status = await recovered.status();
+  assert.equal(status.protectedByBackup, true);
+  assert.equal(status.agentCount, 1);
+  assert.equal(status.recoveryCount, 1);
+  assert.match(status.recoveredAt, /^\d{4}-\d{2}-\d{2}T/);
+
+  await rm(filePath);
+  assert.equal((await recovered.setEnabled("relay-agent", false)).enabled, false);
+  const mutatedBackup = JSON.parse(await readFile(backupPath, "utf8"));
+  assert.equal(mutatedBackup.agents.length, 1);
+  assert.equal(mutatedBackup.agents[0].token_hash, hashAgentToken(issued.token));
 });
 
 test("validates probe payloads and rate limits noisy agents", () => {

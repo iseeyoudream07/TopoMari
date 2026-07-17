@@ -207,12 +207,16 @@ cat >"$UNIT_FILE" <<UNIT
 Description=Komari Topology Private TCP Probe
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=0
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
 ExecStart=${PYTHON_BIN} /usr/local/lib/komari-topology-agent/probe_agent.py --config /etc/komari-topology-agent.json
 Restart=always
 RestartSec=5
+WatchdogSec=120
+TimeoutStartSec=30
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
