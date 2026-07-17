@@ -16,6 +16,7 @@ const stylesUrl = new URL("../public/styles.css", import.meta.url);
 const installerUrl = new URL("../public/agent/install.sh", import.meta.url);
 const agentUpdaterUrl = new URL("../public/agent/update.sh", import.meta.url);
 const dashboardUpdaterUrl = new URL("../scripts/update-dashboard.sh", import.meta.url);
+const dockerfileUrl = new URL("../Dockerfile", import.meta.url);
 const probeAgentUrl = new URL("../public/agent/probe_agent.py", import.meta.url);
 
 function sampleConfig() {
@@ -136,9 +137,10 @@ assert "timestamp" not in sample
 });
 
 test("Agent and dashboard updaters preserve credentials and runtime state", async () => {
-  const [agentUpdater, dashboardUpdater] = await Promise.all([
+  const [agentUpdater, dashboardUpdater, dockerfile] = await Promise.all([
     readFile(agentUpdaterUrl, "utf8"),
     readFile(dashboardUpdaterUrl, "utf8"),
+    readFile(dockerfileUrl, "utf8"),
   ]);
   assert.match(agentUpdater, /--config "\$CONFIG_FILE" --once/);
   assert.match(agentUpdater, /Existing config, token, targets, and Agent ID were preserved/);
@@ -147,8 +149,12 @@ test("Agent and dashboard updaters preserve credentials and runtime state", asyn
 
   assert.match(dashboardUpdater, /tar -C "\$PROJECT_DIR" -czf "\$BACKUP_FILE" \.env config data/);
   assert.match(dashboardUpdater, /git -C "\$PROJECT_DIR" pull --ff-only/);
+  assert.match(dashboardUpdater, /umask 077\s+tar -C "\$PROJECT_DIR" -czf "\$BACKUP_FILE" \.env config data/s);
+  assert.match(dashboardUpdater, /umask 022\s+git -C "\$PROJECT_DIR" pull --ff-only/s);
   assert.match(dashboardUpdater, /AGENT_HASH_AFTER_PULL/);
   assert.match(dashboardUpdater, /probe history exists but config\/agents\.json is missing/);
+  assert.match(dockerfile, /COPY --chown=node:node package\.json server\.mjs/);
+  assert.match(dockerfile, /COPY --chown=node:node public \.\/public/);
 });
 
 test("topology writes are atomic and reject stale revisions", async (context) => {

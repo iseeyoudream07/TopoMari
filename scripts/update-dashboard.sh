@@ -132,14 +132,21 @@ if [[ -s "$AGENT_FILE" ]]; then
   AGENT_HASH_BEFORE="$(sha256sum "$AGENT_FILE" | awk '{print $1}')"
 fi
 
-umask 077
-mkdir -p "$BACKUP_DIR"
+install -d -m 0700 "$BACKUP_DIR"
 BACKUP_FILE="$BACKUP_DIR/topomari-runtime-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
-tar -C "$PROJECT_DIR" -czf "$BACKUP_FILE" .env config data
+(
+  umask 077
+  tar -C "$PROJECT_DIR" -czf "$BACKUP_FILE" .env config data
+)
 tar -tzf "$BACKUP_FILE" >/dev/null
 echo "Runtime state backed up to $BACKUP_FILE"
 
-git -C "$PROJECT_DIR" pull --ff-only
+(
+  # Git honors the current umask for replaced files. Keep application source
+  # readable by the unprivileged node user used in the Docker image.
+  umask 022
+  git -C "$PROJECT_DIR" pull --ff-only
+)
 
 AGENT_HASH_AFTER_PULL="missing"
 if [[ -s "$AGENT_FILE" ]]; then
