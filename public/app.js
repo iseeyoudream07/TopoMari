@@ -6,7 +6,6 @@ import { renderSparkline } from "./sparkline.js";
 
 const elements = {
   title: document.getElementById("page-title"),
-  subtitle: document.getElementById("page-subtitle"),
   sourceChip: document.getElementById("source-chip"),
   sourceLabel: document.getElementById("source-label"),
   refreshButton: document.getElementById("refresh-button"),
@@ -198,7 +197,6 @@ function renderLinkHealth(routes) {
         <div class="link-row">
           <div class="link-title">
             <strong>${escapeHtml(edge.fromNode?.name)} → ${escapeHtml(edge.toNode?.name)}</strong>
-            <span>${escapeHtml(measurementLabel(edge) || edge.routeName)}</span>
           </div>
           <div class="link-stat">
             <strong class="${latencyClass}">${escapeHtml(formatLatency(edge.stats?.latest))}</strong>
@@ -232,7 +230,6 @@ function renderNodes(nodes) {
             </div>
             <span class="node-online-dot" aria-label="${escapeHtml(state)}"></span>
           </div>
-          <span class="node-id">${escapeHtml(node.id)}</span>
         </div>`;
     })
     .join("");
@@ -255,7 +252,6 @@ function renderDashboard(dashboard) {
   const { meta, summary, routes, nodes } = dashboard;
   document.title = meta.title || "TopoMari";
   elements.title.textContent = meta.title || "TopoMari";
-  elements.subtitle.textContent = meta.subtitle || t("brand.defaultSubtitle");
   elements.sourceChip.dataset.mode = meta.mode;
   elements.sourceLabel.textContent = t({ live: "source.live", hybrid: "source.hybrid", demo: "source.demo" }[meta.mode] || "source.connected");
   const updatedTime = new Intl.DateTimeFormat(getLocale(), {

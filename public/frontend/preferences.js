@@ -32,13 +32,10 @@ function syncThemeControl() {
   if (!button) return;
   const theme = currentTheme();
   const isDark = theme === "dark";
-  const label = t(isDark ? "theme.dark" : "theme.light");
   const action = t(isDark ? "theme.switchToLight" : "theme.switchToDark");
   button.dataset.theme = theme;
   button.setAttribute("aria-label", action);
   button.setAttribute("title", action);
-  const text = button.querySelector("[data-theme-label]");
-  if (text) text.textContent = label;
 }
 
 function syncLanguageControls() {

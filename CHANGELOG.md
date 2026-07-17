@@ -4,10 +4,15 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.5.0 - 2026-07-17
+
 - Refined the dashboard with a quieter warm-neutral visual system inspired by minimalist Komari interfaces.
 - Added persistent Chinese / English language controls and light / dark themes across the dashboard and route editor.
 - Separated browser API access, translations, preferences, and theme tokens into maintainable frontend modules.
-- Reworked the README around reusable architecture, deployment, security, and contributor guidance.
+- Replaced the default topology mark with the new TopoMari icon in the browser and dashboard header.
+- Switched interface typography to Arimo for Latin text and Noto Serif TC for Chinese text, with larger type throughout the dashboard and editor.
+- Reduced repeated headings, helper copy, technical IDs, and other low-value interface text while keeping status and safety information visible.
+- Rewrote the README in Simplified Chinese around server deployment, first-time use, features, safe updates, and common problems.
 
 ## 2.4.1 - 2026-07-17
 

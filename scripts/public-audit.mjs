@@ -67,6 +67,18 @@ try {
   await walk(rootDir);
 }
 
+for (let index = files.length - 1; index >= 0; index -= 1) {
+  try {
+    await lstat(resolve(rootDir, files[index]));
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      files.splice(index, 1);
+      continue;
+    }
+    throw error;
+  }
+}
+
 files.sort();
 
 for (const path of requiredFiles) {

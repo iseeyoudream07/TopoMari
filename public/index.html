@@ -6,7 +6,11 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#eeede5" />
     <title>TopoMari</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="256x256" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+TC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
     <script>
       (() => {
         const preferredTheme = () => typeof matchMedia === "function"
@@ -32,9 +36,9 @@
         if (themeColor) themeColor.setAttribute("content", theme === "dark" ? "#1c1b19" : "#eeede5");
       })();
     </script>
-    <link rel="stylesheet" href="/styles.css?v=2.4.1-ui" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.4.1-ui" />
-    <script type="module" src="/app.js?v=2.4.1-ui"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.5.0-ui" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.5.0-ui" />
+    <script type="module" src="/app.js?v=2.5.0-ui"></script>
   </head>
   <body>
     <div class="ambient ambient-a" aria-hidden="true"></div>
@@ -44,17 +48,9 @@
       <header class="app-header">
         <div class="brand-lockup">
           <div class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48">
-              <path d="M9 15.5 24 7l15 8.5v17L24 41 9 32.5z" />
-              <path d="m16 20 8-4.5L32 20v8l-8 4.5L16 28z" />
-              <path d="M24 15.5V7m0 34v-8.5M16 20 9 15.5M39 32.5 32 28" />
-            </svg>
+            <img src="/favicon.png" alt="" />
           </div>
-          <div>
-            <p class="eyebrow" data-i18n="brand.kicker">网络拓扑可观测性</p>
-            <h1 id="page-title">TopoMari</h1>
-            <p id="page-subtitle" class="subtitle" data-i18n="brand.defaultSubtitle">多跳延迟、丢包与链路健康状态</p>
-          </div>
+          <h1 id="page-title">TopoMari</h1>
         </div>
 
         <div class="header-actions">
@@ -73,7 +69,6 @@
             <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" />
             </svg>
-            <span data-theme-label>日间</span>
           </button>
           <button id="manager-toggle" class="refresh-button manager-toggle" type="button" hidden aria-expanded="false" aria-controls="topology-manager">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -119,7 +114,6 @@
             <div>
               <p class="stat-label" data-i18n="stats.latency">平均延迟</p>
               <p id="stat-latency" class="stat-value">—</p>
-              <p class="stat-context" data-i18n="stats.acrossEdges">所有已配置链路段</p>
             </div>
           </article>
           <article class="stat-card">
@@ -129,17 +123,13 @@
             <div>
               <p class="stat-label" data-i18n="stats.loss">平均丢包</p>
               <p id="stat-loss" class="stat-value">—</p>
-              <p class="stat-context" data-i18n="stats.historyWindow">当前历史统计窗口</p>
             </div>
           </article>
         </section>
 
         <section class="glass-panel topology-panel" aria-labelledby="topology-heading">
           <div class="panel-heading">
-            <div>
-              <p class="section-kicker" data-i18n="topology.kicker">实时路径矩阵</p>
-              <h2 id="topology-heading"><span class="heading-primary" data-i18n="topology.title">链路拓扑</span><span data-i18n="topology.subtitle">端到端网络连通性</span></h2>
-            </div>
+            <h2 id="topology-heading" data-i18n="topology.title">链路拓扑</h2>
             <p id="last-updated" class="updated-label" data-i18n="topology.awaiting">等待首个数据快照</p>
           </div>
           <div id="topology-routes" class="topology-routes" aria-live="polite">
@@ -151,10 +141,7 @@
 
         <section id="topology-manager" class="glass-panel manager-panel" aria-labelledby="manager-heading" hidden>
           <div class="panel-heading manager-heading">
-            <div>
-              <p class="section-kicker" data-i18n="manager.kicker">链路编排</p>
-              <h2 id="manager-heading"><span class="heading-primary" data-i18n="manager.title">链路管理器</span><span data-i18n="manager.subtitle">本地 → 中转 → 落地 → 国际网络</span></h2>
-            </div>
+            <h2 id="manager-heading" data-i18n="manager.title">链路管理器</h2>
             <button id="manager-close" class="manager-button ghost" type="button" data-i18n="manager.close">关闭</button>
           </div>
 
@@ -165,7 +152,6 @@
               <div class="manager-subheading">
                 <div>
                   <span class="manager-label" data-i18n="manager.routes">链路列表</span>
-                  <small data-i18n="manager.routesHelp">选择一条链路进行编辑</small>
                 </div>
                 <button id="route-new" class="manager-button" type="button" data-i18n="manager.newRoute">+ 新链路</button>
               </div>
@@ -242,7 +228,6 @@
             <div class="manager-subheading">
               <div>
                 <span class="manager-label" data-i18n="agents.title">已注册探针</span>
-                <small data-i18n="agents.help">状态每 10 秒刷新；停用后该 Agent 将无法提交样本</small>
               </div>
             </div>
             <div id="agent-list" class="agent-list"></div>
@@ -252,21 +237,14 @@
         <section class="insight-layout">
           <article class="glass-panel link-health-panel" aria-labelledby="link-health-heading">
             <div class="panel-heading compact">
-              <div>
-                <p class="section-kicker" data-i18n="analysis.kicker">链路分析</p>
-                <h2 id="link-health-heading" data-i18n="analysis.title">链路健康</h2>
-              </div>
-              <span class="legend-note" data-i18n="analysis.legend">最新 / 平均 / 丢包</span>
+              <h2 id="link-health-heading" data-i18n="analysis.title">链路健康</h2>
             </div>
             <div id="link-health-list" class="link-health-list"></div>
           </article>
 
           <article class="glass-panel node-panel" aria-labelledby="node-heading">
             <div class="panel-heading compact">
-              <div>
-                <p class="section-kicker" data-i18n="nodes.kicker">节点状态</p>
-                <h2 id="node-heading" data-i18n="nodes.title">受监测节点</h2>
-              </div>
+              <h2 id="node-heading" data-i18n="nodes.title">受监测节点</h2>
             </div>
             <div id="node-grid" class="node-grid"></div>
           </article>
@@ -280,10 +258,6 @@
           </div>
         </section>
       </main>
-
-      <footer>
-        <p data-i18n="footer.text">TopoMari · 自托管网络拓扑监测</p>
-      </footer>
     </div>
   </body>
 </html>

@@ -21,9 +21,11 @@
   --rose-soft: rgba(250, 81, 120, 0.13);
   --unknown: #75878f;
   --shadow: 0 18px 50px rgba(0, 0, 0, 0.36);
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  --font-ui: "Arimo", "Noto Serif TC", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-ui);
+  font-optical-sizing: auto;
+  font-style: normal;
 }
 
 * {
@@ -44,6 +46,8 @@ body {
     radial-gradient(circle at 52% -18%, rgba(29, 188, 177, 0.14), transparent 42%),
     linear-gradient(145deg, #050a0d 0%, #071014 47%, #04090c 100%);
   color: var(--text);
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 button,
@@ -110,29 +114,18 @@ button {
   flex: 0 0 54px;
   place-items: center;
   border: 1px solid rgba(33, 230, 175, 0.34);
-  border-radius: 15px;
-  background: linear-gradient(145deg, rgba(33, 230, 175, 0.11), rgba(31, 200, 244, 0.04));
+  border-radius: 50%;
+  overflow: hidden;
+  background: #050505;
   box-shadow: 0 0 28px rgba(33, 230, 175, 0.11);
-  color: var(--green);
 }
 
-.brand-mark svg {
-  width: 34px;
-  height: 34px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.7;
-}
-
-.eyebrow,
-.section-kicker {
-  margin: 0 0 7px;
-  color: var(--green);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
 }
 
 h1,
@@ -142,31 +135,17 @@ p {
 }
 
 h1 {
-  margin-bottom: 4px;
-  font-size: clamp(23px, 3vw, 34px);
-  font-weight: 500;
+  margin-bottom: 0;
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 700;
   letter-spacing: -0.035em;
 }
 
 h2 {
   margin-bottom: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 21px;
+  font-weight: 600;
   letter-spacing: -0.02em;
-}
-
-h2 span {
-  margin-left: 7px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
-.subtitle {
-  margin-bottom: 0;
-  color: var(--muted);
-  font-size: 13px;
 }
 
 .header-actions {
@@ -186,7 +165,7 @@ h2 span {
   border-radius: 11px;
   background: rgba(8, 16, 20, 0.76);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .source-chip {
@@ -293,7 +272,7 @@ h2 span {
 .stat-context {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .stat-label {
@@ -354,11 +333,10 @@ h2 span {
   padding-bottom: 15px;
 }
 
-.updated-label,
-.legend-note {
+.updated-label {
   margin-bottom: 0;
   color: var(--subtle);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .topology-routes {
@@ -387,7 +365,7 @@ h2 span {
 
 .route-name {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.04em;
 }
 
@@ -396,7 +374,7 @@ h2 span {
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
 }
 
@@ -479,8 +457,8 @@ h2 span {
   overflow: hidden;
   margin-bottom: 5px;
   color: var(--text);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -491,7 +469,7 @@ h2 span {
   align-items: center;
   gap: 5px;
   color: var(--subtle);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .node-state::before {
@@ -591,7 +569,7 @@ h2 span {
   border-radius: 7px;
   background: rgba(4, 13, 16, 0.9);
   color: var(--green);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   box-shadow: 0 7px 20px rgba(0, 0, 0, 0.22);
 }
@@ -666,24 +644,23 @@ h2 span {
   display: block;
   overflow: hidden;
   margin-bottom: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.link-title span,
 .link-stat span {
   color: var(--subtle);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .link-stat strong {
   display: block;
   margin-bottom: 3px;
   color: var(--text);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .link-stat strong.is-warning {
@@ -774,8 +751,8 @@ h2 span {
   border-radius: 7px;
   background: var(--green-soft);
   color: var(--green);
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
@@ -829,15 +806,15 @@ h2 span {
   display: block;
   overflow: hidden;
   margin-bottom: 3px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .asset-node-name span {
   color: var(--subtle);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .node-online-dot {
@@ -854,20 +831,10 @@ h2 span {
   box-shadow: none;
 }
 
-.node-id {
-  display: block;
-  overflow: hidden;
-  color: var(--subtle);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .empty-state {
   padding: 34px 14px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
 }
 
@@ -889,13 +856,13 @@ h2 span {
 .error-panel h2 {
   margin-bottom: 5px;
   color: var(--rose);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .error-panel p {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .error-icon {
@@ -908,17 +875,6 @@ h2 span {
   background: var(--rose-soft);
   color: var(--rose);
   font-weight: 500;
-}
-
-footer {
-  padding: 20px 0 4px;
-  color: var(--subtle);
-  font-size: 10px;
-  text-align: center;
-}
-
-footer p {
-  margin-bottom: 0;
 }
 
 .manager-panel {
@@ -943,7 +899,7 @@ footer p {
   border-radius: 9px;
   background: rgba(12, 23, 28, 0.92);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
 }
@@ -991,7 +947,7 @@ footer p {
   border-radius: 10px;
   background: var(--green-soft);
   color: var(--green);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .manager-notice[data-tone="error"] {
@@ -1029,8 +985,8 @@ footer p {
   display: block;
   margin-bottom: 4px;
   color: var(--text);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .manager-subheading small,
@@ -1040,7 +996,7 @@ footer p {
 .agent-row small {
   display: block;
   color: var(--subtle);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .route-list {
@@ -1081,13 +1037,13 @@ footer p {
 .route-list-item strong {
   margin-bottom: 5px;
   color: var(--text);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .route-list-item span {
   color: var(--subtle);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .route-editor {
@@ -1112,7 +1068,7 @@ footer p {
   display: block;
   margin-bottom: 6px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .manager-panel input,
@@ -1124,7 +1080,7 @@ footer p {
   border-radius: 9px;
   background: rgba(5, 12, 16, 0.86);
   color: var(--text);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .manager-panel input::placeholder {
@@ -1170,13 +1126,13 @@ footer p {
 .builder-node span {
   margin-bottom: 7px;
   color: var(--green);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.08em;
 }
 
 .builder-node strong {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .builder-edge {
@@ -1203,12 +1159,12 @@ footer p {
 .builder-edge span {
   margin-bottom: 5px;
   color: var(--cyan);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .builder-edge small {
   color: var(--subtle);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .builder-node:hover,
@@ -1243,20 +1199,20 @@ footer p {
 .selection-title span {
   margin-bottom: 4px;
   color: var(--green);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
 }
 
 .selection-title strong {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .selection-title code {
   max-width: 46%;
   overflow: hidden;
   color: var(--subtle);
-  font-size: 9px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1310,14 +1266,14 @@ footer p {
 
 .task-choice strong {
   color: var(--text);
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .task-choice small {
   margin-top: 3px;
   color: var(--subtle);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .threshold-fieldset {
@@ -1347,7 +1303,7 @@ footer p {
 .dirty-state {
   margin-right: auto;
   color: var(--subtle);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .dirty-state[data-dirty="true"] {
@@ -1389,8 +1345,8 @@ footer p {
   min-width: 0;
   margin: 0;
   color: var(--cyan);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1418,8 +1374,8 @@ footer p {
   display: block;
   overflow: hidden;
   margin-bottom: 4px;
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1443,7 +1399,7 @@ footer p {
 .manager-empty {
   padding: 18px 8px;
   color: var(--subtle);
-  font-size: 10px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -1563,8 +1519,7 @@ footer p {
     padding: 16px;
   }
 
-  .updated-label,
-  .legend-note {
+  .updated-label {
     display: none;
   }
 

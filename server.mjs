@@ -482,7 +482,7 @@ async function serveStatic(response, pathname) {
       "Content-Length": body.length,
       "Cache-Control": extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600",
       "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     });
     response.end(body);
   } catch (error) {
