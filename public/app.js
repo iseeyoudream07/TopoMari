@@ -1,11 +1,11 @@
 import { dashboardApi } from "./frontend/api-client.js";
 import { getLocale, t } from "./frontend/i18n.js";
-import { initPreferences } from "./frontend/preferences.js";
-import { initTopologyEditor } from "./editor.js";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
 import { renderSparkline } from "./sparkline.js";
 
 const elements = {
   title: document.getElementById("page-title"),
+  description: document.getElementById("site-description"),
   sourceChip: document.getElementById("source-chip"),
   sourceLabel: document.getElementById("source-label"),
   refreshButton: document.getElementById("refresh-button"),
@@ -252,8 +252,10 @@ function renderDashboard(dashboard) {
   const { meta, summary, routes, nodes } = dashboard;
   document.title = meta.siteName || "TopoMari";
   elements.title.textContent = meta.mainTitle || meta.title || "TopoMari";
+  if (elements.description) elements.description.setAttribute("content", meta.description || "");
+  setAutoThemeBeijing(meta.autoThemeBeijing === true);
   elements.sourceChip.dataset.mode = meta.mode;
-  elements.sourceLabel.textContent = t({ live: "source.live", hybrid: "source.hybrid", demo: "source.demo" }[meta.mode] || "source.connected");
+  elements.sourceLabel.textContent = t("source.hybrid");
   const updatedTime = new Intl.DateTimeFormat(getLocale(), {
     hour: "2-digit",
     minute: "2-digit",
@@ -271,7 +273,7 @@ function renderDashboard(dashboard) {
 function showError(error) {
   lastError = error;
   elements.sourceChip.dataset.mode = "error";
-  elements.sourceLabel.textContent = t("source.error");
+  elements.sourceLabel.textContent = t("source.hybrid");
   elements.errorMessage.textContent = error.message || String(error);
   elements.errorPanel.hidden = false;
   if (!lastDashboard) {
@@ -289,8 +291,10 @@ function scheduleRefresh(seconds) {
 async function loadDashboard() {
   if (loading) return;
   loading = true;
-  elements.refreshButton.disabled = true;
-  elements.refreshButton.classList.add("is-loading");
+  if (elements.refreshButton) {
+    elements.refreshButton.disabled = true;
+    elements.refreshButton.classList.add("is-loading");
+  }
   try {
     renderDashboard(await dashboardApi.snapshot());
   } catch (error) {
@@ -298,17 +302,14 @@ async function loadDashboard() {
     scheduleRefresh(15);
   } finally {
     loading = false;
-    elements.refreshButton.disabled = false;
-    elements.refreshButton.classList.remove("is-loading");
+    if (elements.refreshButton) {
+      elements.refreshButton.disabled = false;
+      elements.refreshButton.classList.remove("is-loading");
+    }
   }
 }
 
 initPreferences();
-
-elements.refreshButton.addEventListener("click", () => {
-  clearTimeout(refreshTimer);
-  loadDashboard();
-});
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") loadDashboard();
@@ -321,4 +322,3 @@ document.addEventListener("topomari:languagechange", () => {
 });
 
 loadDashboard();
-initTopologyEditor({ onSaved: loadDashboard });

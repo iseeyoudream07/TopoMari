@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#eeede5" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>TopoMari · 后台管理</title>
+    <link id="site-favicon" rel="icon" href="/favicon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+    <script src="/frontend/preference-bootstrap.js?v=2.6.0-admin"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.6.0-admin" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.6.0-admin" />
+    <link rel="stylesheet" href="/admin.css?v=2.6.0-admin" />
+    <script type="module" src="/admin.js?v=2.6.0-admin"></script>
+  </head>
+  <body class="admin-body">
+    <div class="ambient ambient-a" aria-hidden="true"></div>
+    <div class="ambient ambient-b" aria-hidden="true"></div>
+
+    <main id="login-gate" class="login-gate" aria-labelledby="login-title">
+      <section class="login-card">
+        <a class="login-brand" href="/" aria-label="TopoMari">
+          <img id="login-favicon" src="/favicon" alt="" />
+          <span id="login-site-name">TopoMari</span>
+        </a>
+        <div>
+          <p class="admin-kicker" data-i18n="admin.console">ADMIN CONSOLE</p>
+          <h1 id="login-title" data-i18n="admin.loginTitle">登录后台管理</h1>
+          <p class="login-copy" data-i18n="admin.loginDescription">公开面板无需登录；只有链路和站点设置需要管理员身份。</p>
+        </div>
+        <form id="login-form" class="login-form">
+          <label>
+            <span data-i18n="admin.username">用户名</span>
+            <input id="login-username" name="username" type="text" autocomplete="username" required autofocus />
+          </label>
+          <label>
+            <span data-i18n="admin.password">密码</span>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <p id="login-error" class="form-error" hidden role="alert"></p>
+          <button id="login-submit" class="manager-button primary login-submit" type="submit" data-i18n="admin.login">登录</button>
+        </form>
+        <a class="back-home-link" href="/" data-i18n="admin.backHome">返回公开面板</a>
+      </section>
+    </main>
+
+    <div id="admin-shell" class="admin-shell" hidden>
+      <button id="sidebar-scrim" class="sidebar-scrim" type="button" aria-label="关闭菜单" hidden></button>
+      <aside id="admin-sidebar" class="admin-sidebar">
+        <a class="admin-brand" href="/">
+          <img id="admin-favicon" src="/favicon" alt="" />
+          <div>
+            <strong id="admin-site-name">TopoMari</strong>
+            <span data-i18n="admin.console">ADMIN CONSOLE</span>
+          </div>
+        </a>
+
+        <nav class="admin-nav" aria-label="后台管理">
+          <button class="admin-nav-item is-active" type="button" data-admin-view="routes" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M7 4v6M17 14v6" /></svg>
+            <span data-i18n="admin.routes">链路管理</span>
+          </button>
+          <button id="settings-toggle" class="admin-nav-item admin-nav-parent" type="button" aria-expanded="true" aria-controls="settings-submenu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" /></svg>
+            <span data-i18n="admin.settings">设置</span>
+            <svg class="submenu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+          </button>
+          <div id="settings-submenu" class="admin-submenu">
+            <button class="admin-submenu-item" type="button" data-admin-view="site">
+              <span data-i18n="admin.site">站点</span>
+            </button>
+          </div>
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <div class="language-switch admin-language-switch" role="group" data-i18n-aria-label="language.label" aria-label="界面语言">
+            <button type="button" data-language-value="zh-CN" aria-pressed="true">中文</button>
+            <button type="button" data-language-value="en" aria-pressed="false">EN</button>
+          </div>
+          <button id="logout-button" class="admin-logout" type="button" data-i18n="admin.logout">退出登录</button>
+        </div>
+      </aside>
+
+      <section class="admin-main">
+        <header class="admin-toolbar">
+          <div class="admin-toolbar-title">
+            <button id="sidebar-toggle" class="utility-button admin-menu-toggle" type="button" data-i18n-aria-label="admin.openMenu" aria-label="打开菜单">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+            </button>
+            <div>
+              <span id="admin-breadcrumb" data-i18n="admin.routes">链路管理</span>
+              <small data-i18n="admin.secureArea">安全管理区域</small>
+            </div>
+          </div>
+          <div class="admin-toolbar-actions">
+            <button id="theme-toggle" class="utility-button theme-toggle" type="button" aria-label="切换至夜间模式">
+              <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+              <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" /></svg>
+            </button>
+            <a class="utility-button admin-home-button" href="/" data-i18n="admin.viewSite">查看站点</a>
+          </div>
+        </header>
+
+        <div id="admin-notice" class="admin-global-notice" hidden role="status"></div>
+
+        <section id="routes-view" class="admin-view" data-admin-panel="routes">
+          <div id="editor-disabled" class="admin-callout" hidden>
+            <strong data-i18n="admin.editorDisabled">链路编辑器未启用</strong>
+            <span data-i18n="admin.editorDisabledHelp">请在服务配置中启用 ENABLE_TOPOLOGY_EDITOR 后重启。</span>
+          </div>
+          <section id="topology-manager" class="glass-panel manager-panel admin-manager-panel" aria-labelledby="manager-heading">
+            <div class="panel-heading manager-heading">
+              <div>
+                <p class="admin-kicker" data-i18n="admin.routes">链路管理</p>
+                <h2 id="manager-heading" data-i18n="manager.title">链路管理器</h2>
+              </div>
+            </div>
+            <div id="manager-notice" class="manager-notice" hidden role="status"></div>
+            <div class="manager-workspace">
+              <aside class="route-library" aria-label="已配置链路" data-i18n-aria-label="manager.routeLibraryAria">
+                <div class="manager-subheading">
+                  <span class="manager-label" data-i18n="manager.routes">链路列表</span>
+                  <button id="route-new" class="manager-button" type="button" data-i18n="manager.newRoute">+ 新链路</button>
+                </div>
+                <div id="route-list" class="route-list"></div>
+              </aside>
+              <div class="route-editor">
+                <div class="route-meta-fields">
+                  <label><span data-i18n="manager.routeName">链路名称</span><input id="route-name-input" type="text" maxlength="160" autocomplete="off" /></label>
+                  <label><span data-i18n="manager.routeId">链路 ID</span><input id="route-id-input" type="text" maxlength="128" autocomplete="off" spellcheck="false" /></label>
+                </div>
+                <div id="route-path-builder" class="route-path-builder" aria-label="可交互链路路径" data-i18n-aria-label="manager.pathAria"></div>
+                <div id="route-selection-editor" class="selection-editor"></div>
+                <div class="manager-actions">
+                  <span id="route-dirty-state" class="dirty-state" data-i18n="manager.saved">已保存</span>
+                  <button id="route-delete" class="manager-button danger" type="button" data-i18n="manager.delete">删除链路</button>
+                  <button id="route-save" class="manager-button primary" type="button" data-i18n="manager.save">保存并应用</button>
+                </div>
+              </div>
+            </div>
+            <div class="deployment-panel">
+              <div class="manager-subheading deployment-heading">
+                <div><span class="manager-label" data-i18n="deploy.title">私有探针部署</span><small data-i18n="deploy.help">目标地址仅用于生成命令，不会保存到面板</small></div>
+              </div>
+              <div class="deployment-grid">
+                <label><span data-i18n="deploy.edge">私有探针链路</span><select id="deploy-edge"></select></label>
+                <label><span data-i18n="deploy.agentId">探针 Agent ID</span><input id="deploy-agent" type="text" maxlength="128" spellcheck="false" /></label>
+                <label><span data-i18n="deploy.host">目标主机 / IP</span><input id="deploy-host" type="text" maxlength="253" placeholder="例如 203.0.113.10" data-i18n-placeholder="deploy.hostPlaceholder" spellcheck="false" /></label>
+                <label><span data-i18n="deploy.port">目标端口</span><input id="deploy-port" type="number" min="1" max="65535" value="443" /></label>
+                <label><span data-i18n="deploy.interval">采样间隔（秒）</span><input id="deploy-interval" type="number" min="5" max="3600" value="30" /></label>
+                <label><span data-i18n="deploy.timeout">超时（秒）</span><input id="deploy-timeout" type="number" min="1" max="60" value="5" /></label>
+              </div>
+              <div class="deployment-actions">
+                <button id="deploy-generate" class="manager-button primary" type="button" data-i18n="deploy.generate">生成一次性部署命令</button>
+                <span id="deploy-status" class="deployment-status" data-i18n="deploy.validity">部署码 15 分钟有效且只能使用一次</span>
+              </div>
+              <div id="deploy-command-box" class="command-box" hidden><pre><code id="deploy-command"></code></pre><button id="deploy-copy" class="manager-button" type="button" data-i18n="deploy.copy">复制命令</button></div>
+            </div>
+            <div class="agent-panel">
+              <div class="manager-subheading"><span class="manager-label" data-i18n="agents.title">已注册探针</span></div>
+              <div id="agent-list" class="agent-list"></div>
+            </div>
+          </section>
+        </section>
+
+        <section id="site-view" class="admin-view" data-admin-panel="site" hidden>
+          <div class="site-settings-heading">
+            <div>
+              <p class="admin-kicker" data-i18n="admin.settingsSite">SETTINGS / SITE</p>
+              <h1 data-i18n="site.title">站点设置</h1>
+              <p data-i18n="site.descriptionHelp">修改公开面板的名称、页面描述和浏览器图标。</p>
+            </div>
+          </div>
+
+          <form id="site-settings-form" class="site-settings-form">
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="site.identity">站点信息</h2>
+                <p data-i18n="site.identityHelp">名称会同步到浏览器标题和公开面板标题；描述用于页面元信息。</p>
+              </div>
+              <div class="settings-fields">
+                <label><span data-i18n="site.name">站点名称</span><input id="site-name-input" type="text" maxlength="160" required /></label>
+                <label><span data-i18n="site.description">站点描述</span><textarea id="site-description-input" maxlength="500" rows="4" required></textarea><small><span id="description-count">0</span>/500</small></label>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="site.favicon">自定义 Favicon</h2>
+                <p data-i18n="site.faviconHelp">支持 PNG 或 ICO，最大 2 MiB；文件保存在持久化 data 目录。</p>
+              </div>
+              <div class="favicon-editor">
+                <div class="favicon-preview"><img id="favicon-preview" src="/favicon" alt="Favicon preview" /></div>
+                <div class="favicon-actions">
+                  <input id="favicon-file" type="file" accept=".png,.ico,image/png,image/x-icon,image/vnd.microsoft.icon" />
+                  <div>
+                    <button id="favicon-upload" class="manager-button" type="button" data-i18n="site.uploadFavicon">上传图标</button>
+                    <button id="favicon-reset" class="manager-button ghost" type="button" data-i18n="site.resetFavicon">恢复默认</button>
+                  </div>
+                  <small id="favicon-status" data-i18n="site.faviconCurrent">当前使用默认图标</small>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="site.themeAutomation">主题自动切换</h2>
+                <p data-i18n="site.themeAutomationHelp">按北京地理坐标每日计算日出和日落，日出后使用日间模式，日落后使用夜间模式。</p>
+              </div>
+              <label class="settings-switch-row">
+                <span><strong data-i18n="site.autoBeijing">跟随北京时间日出 / 日落</strong><small data-i18n="site.autoBeijingHelp">手动切换会暂时生效，到下一次日出或日落时恢复自动。</small></span>
+                <input id="auto-theme-beijing" type="checkbox" role="switch" />
+              </label>
+            </section>
+
+            <div class="site-save-row">
+              <span id="site-save-status" class="deployment-status"></span>
+              <button id="site-save" class="manager-button primary" type="submit" data-i18n="site.save">保存站点设置</button>
+            </div>
+          </form>
+        </section>
+      </section>
+    </div>
+  </body>
+</html>

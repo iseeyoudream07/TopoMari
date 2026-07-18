@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.6.0 - 2026-07-18
+
+- Added a Komari-style admin console with session login, route management, and a Settings > Site submenu.
+- Made the dashboard public while keeping all admin, editor, probe inventory, and diagnostic APIs authenticated.
+- Added editable site name, description, persistent PNG/ICO favicon, and Beijing sunrise/sunset theme automation.
+- Simplified the public header to the data-source label, theme switch, and admin entry.
+
 ## 2.5.1 - 2026-07-17
 
 - Switched Simplified Chinese text to Noto Serif SC and temporarily hid the language switch while preserving its implementation.

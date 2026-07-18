@@ -1,9 +1,13 @@
 import { getLanguage, initI18n, setLanguage, t } from "./i18n.js";
+import { nextBeijingSolarTransition, themeForBeijingInstant } from "./solar-theme.js";
 
 const THEME_KEY = "topomari-theme";
 const THEMES = new Set(["light", "dark"]);
 
 let followsSystemTheme = false;
+let autoThemeBeijing = false;
+let autoThemeTimer = null;
+let manualOverrideUntil = 0;
 
 function systemTheme() {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches
@@ -34,8 +38,9 @@ function syncThemeControl() {
   const isDark = theme === "dark";
   const action = t(isDark ? "theme.switchToLight" : "theme.switchToDark");
   button.dataset.theme = theme;
+  button.dataset.autoThemeBeijing = String(autoThemeBeijing);
   button.setAttribute("aria-label", action);
-  button.setAttribute("title", action);
+  button.setAttribute("title", autoThemeBeijing ? `${action} · ${t("theme.autoBeijingActive")}` : action);
 }
 
 function syncLanguageControls() {
@@ -64,13 +69,52 @@ function applyTheme(theme, { persist = false } = {}) {
   syncThemeControl();
 }
 
+function scheduleBeijingTheme({ apply = true } = {}) {
+  window.clearTimeout(autoThemeTimer);
+  if (!autoThemeBeijing) return;
+  const now = new Date();
+  const transition = nextBeijingSolarTransition(now);
+  if (apply && Date.now() >= manualOverrideUntil) {
+    manualOverrideUntil = 0;
+    applyTheme(themeForBeijingInstant(now));
+  }
+  const delay = Math.min(2_147_000_000, Math.max(1_000, transition.getTime() - now.getTime() + 1_000));
+  autoThemeTimer = window.setTimeout(() => {
+    manualOverrideUntil = 0;
+    scheduleBeijingTheme();
+  }, delay);
+}
+
+export function setAutoThemeBeijing(enabled) {
+  const next = enabled === true;
+  if (autoThemeBeijing === next) {
+    if (next) scheduleBeijingTheme({ apply: Date.now() >= manualOverrideUntil });
+    return;
+  }
+  autoThemeBeijing = next;
+  manualOverrideUntil = 0;
+  if (next) scheduleBeijingTheme();
+  else {
+    window.clearTimeout(autoThemeTimer);
+    applyTheme(storedTheme());
+  }
+  syncThemeControl();
+}
+
 export function initPreferences() {
   initI18n();
   applyTheme(storedTheme());
   syncLanguageControls();
 
   document.getElementById("theme-toggle")?.addEventListener("click", () => {
-    applyTheme(currentTheme() === "dark" ? "light" : "dark", { persist: true });
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    if (autoThemeBeijing) {
+      manualOverrideUntil = nextBeijingSolarTransition(new Date()).getTime();
+      applyTheme(next);
+      scheduleBeijingTheme({ apply: false });
+      return;
+    }
+    applyTheme(next, { persist: true });
   });
 
   document.querySelectorAll("[data-language-value]").forEach((button) => {

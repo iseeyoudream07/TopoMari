@@ -5,40 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#eeede5" />
+    <meta id="site-description" name="description" content="Multi-hop latency and packet-loss visibility" />
     <title>TopoMari</title>
-    <link rel="icon" href="/favicon.png?v=2.5.1" type="image/png" sizes="1254x1254" />
-    <link rel="apple-touch-icon" href="/favicon.png?v=2.5.1" />
+    <link id="site-favicon" rel="icon" href="/favicon" />
+    <link rel="apple-touch-icon" href="/favicon" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script>
-      (() => {
-        const preferredTheme = () => typeof matchMedia === "function"
-          && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        const preferredLanguage = () => typeof navigator !== "undefined"
-          && String(navigator.language || "").toLowerCase().startsWith("zh") ? "zh-CN" : "en";
-        let theme = preferredTheme();
-        let language = preferredLanguage();
-
-        try {
-          const savedTheme = localStorage.getItem("topomari-theme");
-          if (savedTheme === "light" || savedTheme === "dark") theme = savedTheme;
-          const savedLanguage = localStorage.getItem("topomari-language");
-          if (savedLanguage === "en" || savedLanguage === "zh-CN") language = savedLanguage;
-        } catch {
-          // Browser preferences remain active when storage is unavailable.
-        }
-
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.lang = language;
-        document.documentElement.style.colorScheme = theme;
-        const themeColor = document.querySelector('meta[name="theme-color"]');
-        if (themeColor) themeColor.setAttribute("content", theme === "dark" ? "#1c1b19" : "#eeede5");
-      })();
-    </script>
-    <link rel="stylesheet" href="/styles.css?v=2.5.1-ui" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.5.1-ui" />
-    <script type="module" src="/app.js?v=2.5.1-ui"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.6.0-admin"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.6.0-admin" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.6.0-admin" />
+    <script type="module" src="/app.js?v=2.6.0-admin"></script>
   </head>
   <body>
     <div class="ambient ambient-a" aria-hidden="true"></div>
@@ -48,7 +25,7 @@
       <header class="app-header">
         <div class="brand-lockup">
           <div class="brand-mark" aria-hidden="true">
-            <img src="/favicon.png?v=2.5.1" alt="" />
+            <img src="/favicon" alt="" />
           </div>
           <h1 id="page-title">TopoMari</h1>
         </div>
@@ -56,11 +33,7 @@
         <div class="header-actions">
           <div id="source-chip" class="source-chip" data-mode="loading">
             <span class="source-dot" aria-hidden="true"></span>
-            <span id="source-label" data-i18n="source.connecting">正在连接</span>
-          </div>
-          <div class="language-switch" role="group" data-i18n-aria-label="language.label" aria-label="界面语言" hidden>
-            <button type="button" data-language-value="zh-CN" aria-pressed="true">中</button>
-            <button type="button" data-language-value="en" aria-pressed="false">EN</button>
+            <span id="source-label" data-i18n="source.hybrid">Komari + 私有探针</span>
           </div>
           <button id="theme-toggle" class="utility-button theme-toggle" type="button" aria-label="切换至夜间模式">
             <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
@@ -70,18 +43,12 @@
               <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" />
             </svg>
           </button>
-          <button id="manager-toggle" class="refresh-button manager-toggle" type="button" hidden aria-expanded="false" aria-controls="topology-manager">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h16M4 17h16M7 4v6M17 14v6" />
+          <a class="utility-button theme-toggle admin-entry" href="/admin" data-i18n-aria-label="admin.enter" aria-label="进入后台" data-i18n-title="admin.enter" title="进入后台">
+            <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
             </svg>
-            <span data-i18n="actions.manageRoutes">管理链路</span>
-          </button>
-          <button id="refresh-button" class="refresh-button" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 4v4h4M4 13a8.1 8.1 0 0 0 15.5 3M20 20v-4h-4" />
-            </svg>
-            <span data-i18n="actions.refresh">刷新</span>
-          </button>
+          </a>
         </div>
       </header>
 
@@ -136,101 +103,6 @@
             <div class="skeleton-route" aria-hidden="true"></div>
             <div class="skeleton-route" aria-hidden="true"></div>
             <div class="skeleton-route" aria-hidden="true"></div>
-          </div>
-        </section>
-
-        <section id="topology-manager" class="glass-panel manager-panel" aria-labelledby="manager-heading" hidden>
-          <div class="panel-heading manager-heading">
-            <h2 id="manager-heading" data-i18n="manager.title">链路管理器</h2>
-            <button id="manager-close" class="manager-button ghost" type="button" data-i18n="manager.close">关闭</button>
-          </div>
-
-          <div id="manager-notice" class="manager-notice" hidden role="status"></div>
-
-          <div class="manager-workspace">
-            <aside class="route-library" aria-label="已配置链路" data-i18n-aria-label="manager.routeLibraryAria">
-              <div class="manager-subheading">
-                <div>
-                  <span class="manager-label" data-i18n="manager.routes">链路列表</span>
-                </div>
-                <button id="route-new" class="manager-button" type="button" data-i18n="manager.newRoute">+ 新链路</button>
-              </div>
-              <div id="route-list" class="route-list"></div>
-            </aside>
-
-            <div class="route-editor">
-              <div class="route-meta-fields">
-                <label>
-                  <span data-i18n="manager.routeName">链路名称</span>
-                  <input id="route-name-input" type="text" maxlength="160" autocomplete="off" />
-                </label>
-                <label>
-                  <span data-i18n="manager.routeId">链路 ID</span>
-                  <input id="route-id-input" type="text" maxlength="128" autocomplete="off" spellcheck="false" />
-                </label>
-              </div>
-
-              <div id="route-path-builder" class="route-path-builder" aria-label="可交互链路路径" data-i18n-aria-label="manager.pathAria"></div>
-              <div id="route-selection-editor" class="selection-editor"></div>
-
-              <div class="manager-actions">
-                <span id="route-dirty-state" class="dirty-state" data-i18n="manager.saved">已保存</span>
-                <button id="route-delete" class="manager-button danger" type="button" data-i18n="manager.delete">删除链路</button>
-                <button id="route-save" class="manager-button primary" type="button" data-i18n="manager.save">保存并应用</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="deployment-panel">
-            <div class="manager-subheading deployment-heading">
-              <div>
-                <span class="manager-label" data-i18n="deploy.title">私有探针部署</span>
-                <small data-i18n="deploy.help">目标地址仅用于生成命令，不会保存到面板</small>
-              </div>
-            </div>
-            <div class="deployment-grid">
-              <label>
-                <span data-i18n="deploy.edge">私有探针链路</span>
-                <select id="deploy-edge"></select>
-              </label>
-              <label>
-                <span data-i18n="deploy.agentId">探针 Agent ID</span>
-                <input id="deploy-agent" type="text" maxlength="128" spellcheck="false" />
-              </label>
-              <label>
-                <span data-i18n="deploy.host">目标主机 / IP</span>
-                <input id="deploy-host" type="text" maxlength="253" placeholder="例如 203.0.113.10" data-i18n-placeholder="deploy.hostPlaceholder" spellcheck="false" />
-              </label>
-              <label>
-                <span data-i18n="deploy.port">目标端口</span>
-                <input id="deploy-port" type="number" min="1" max="65535" value="443" />
-              </label>
-              <label>
-                <span data-i18n="deploy.interval">采样间隔（秒）</span>
-                <input id="deploy-interval" type="number" min="5" max="3600" value="30" />
-              </label>
-              <label>
-                <span data-i18n="deploy.timeout">超时（秒）</span>
-                <input id="deploy-timeout" type="number" min="1" max="60" value="5" />
-              </label>
-            </div>
-            <div class="deployment-actions">
-              <button id="deploy-generate" class="manager-button primary" type="button" data-i18n="deploy.generate">生成一次性部署命令</button>
-              <span id="deploy-status" class="deployment-status" data-i18n="deploy.validity">部署码 15 分钟有效且只能使用一次</span>
-            </div>
-            <div id="deploy-command-box" class="command-box" hidden>
-              <pre><code id="deploy-command"></code></pre>
-              <button id="deploy-copy" class="manager-button" type="button" data-i18n="deploy.copy">复制命令</button>
-            </div>
-          </div>
-
-          <div class="agent-panel">
-            <div class="manager-subheading">
-              <div>
-                <span class="manager-label" data-i18n="agents.title">已注册探针</span>
-              </div>
-            </div>
-            <div id="agent-list" class="agent-list"></div>
           </div>
         </section>
 
