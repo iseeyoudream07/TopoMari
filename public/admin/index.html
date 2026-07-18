@@ -11,13 +11,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.7.0-glassmorphism"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.7.0-glassmorphism" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.7.0-glassmorphism" />
-    <link rel="stylesheet" href="/admin.css?v=2.7.0-glassmorphism" />
-    <script type="module" src="/admin.js?v=2.7.0-glassmorphism"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.0-theme-settings"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.0-theme-settings" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.0-theme-settings" />
+    <link rel="stylesheet" href="/admin.css?v=2.8.0-theme-settings" />
+    <script type="module" src="/admin.js?v=2.8.0-theme-settings"></script>
   </head>
   <body class="admin-body">
+    <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
+      <div id="site-background-media" class="site-background-media">
+        <div id="site-background-image" class="site-background-image" hidden></div>
+        <video id="site-background-video" class="site-background-video" muted loop autoplay playsinline preload="auto" hidden></video>
+      </div>
+      <div id="site-background-overlay" class="site-background-overlay"></div>
+    </div>
     <div class="ambient ambient-a" aria-hidden="true"></div>
     <div class="ambient ambient-b" aria-hidden="true"></div>
 
@@ -58,13 +65,19 @@
         </a>
 
         <nav class="admin-nav" aria-label="后台管理">
+          <span class="admin-nav-section-label" data-i18n="admin.management">管理</span>
           <button class="admin-nav-item is-active" type="button" data-admin-view="routes" aria-current="page">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16M7 4v6M17 14v6" /></svg>
-            <span data-i18n="admin.routes">链路管理</span>
+            <span class="admin-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="2" /><rect x="3" y="14" width="18" height="6" rx="2" /><path d="M7 7h.01M7 17h.01M11 7h6M11 17h6" /></svg></span>
+            <span class="admin-nav-label" data-i18n="admin.routes">链路管理</span>
           </button>
+          <button class="admin-nav-item" type="button" data-admin-view="theme">
+            <span class="admin-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 14.5Z" /><path d="m4 14 4.4-4.2a2 2 0 0 1 2.8 0L18 17M15.5 8h.01" /></svg></span>
+            <span class="admin-nav-label" data-i18n="admin.themeSettings">主题设置</span>
+          </button>
+          <span class="admin-nav-section-label admin-nav-settings-label" data-i18n="admin.configuration">配置</span>
           <button id="settings-toggle" class="admin-nav-item admin-nav-parent" type="button" aria-expanded="true" aria-controls="settings-submenu">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" /></svg>
-            <span data-i18n="admin.settings">设置</span>
+            <span class="admin-nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" /></svg></span>
+            <span class="admin-nav-label" data-i18n="admin.settings">设置</span>
             <svg class="submenu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </button>
           <div id="settings-submenu" class="admin-submenu">
@@ -234,6 +247,76 @@
             <div class="site-save-row">
               <span id="general-save-status" class="deployment-status"></span>
               <button id="general-save" class="manager-button primary" type="submit" data-i18n="general.save">保存通用设置</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="theme-view" class="admin-view" data-admin-panel="theme" hidden>
+          <div class="site-settings-heading">
+            <div>
+              <p class="admin-kicker" data-i18n="admin.themeSettingsPath">主题设置</p>
+              <h1 data-i18n="themeSettings.title">主题设置</h1>
+              <p data-i18n="themeSettings.description">精细调整公开面板的背景媒体、毛玻璃强度、边框和圆角；主题样式仍在“设置 → 通用”中切换。</p>
+            </div>
+          </div>
+
+          <form id="theme-settings-form" class="site-settings-form">
+            <section class="settings-card theme-background-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="themeSettings.background">自定义背景</h2>
+                <p data-i18n="themeSettings.backgroundHelp">支持亮暗模式分别使用图片或视频。远程地址会由访客浏览器直接加载，建议使用 HTTPS。</p>
+              </div>
+              <div class="theme-detail-fields">
+                <label class="settings-switch-row">
+                  <span><strong data-i18n="themeSettings.backgroundEnabled">启用自定义背景</strong><small data-i18n="themeSettings.backgroundEnabledHelp">关闭时恢复当前主题的内置背景。</small></span>
+                  <input id="background-enabled" type="checkbox" role="switch" />
+                </label>
+                <label class="theme-select-field"><span data-i18n="themeSettings.backgroundType">背景类型</span><select id="background-type"><option value="image" data-i18n="themeSettings.image">图片</option><option value="video" data-i18n="themeSettings.video">视频</option></select></label>
+                <div id="background-source-fields" class="background-source-grid">
+                  <section class="background-source-card" data-background-mode="light">
+                    <div><strong data-i18n="themeSettings.lightBackground">亮色模式背景</strong><small id="light-background-status"></small></div>
+                    <label><span data-i18n="themeSettings.source">背景地址</span><input id="light-background-source" type="text" inputmode="url" maxlength="1000" placeholder="https://…、/images/background.webp 或 local:light" /></label>
+                    <input id="light-background-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" />
+                    <div class="background-source-actions"><button id="light-background-upload" class="manager-button" type="button" data-i18n="themeSettings.upload">上传并使用</button><button id="light-background-delete" class="manager-button ghost" type="button" data-i18n="themeSettings.deleteLocal">删除本地文件</button></div>
+                  </section>
+                  <section class="background-source-card" data-background-mode="dark">
+                    <div><strong data-i18n="themeSettings.darkBackground">暗色模式背景</strong><small id="dark-background-status"></small></div>
+                    <label><span data-i18n="themeSettings.source">背景地址</span><input id="dark-background-source" type="text" inputmode="url" maxlength="1000" placeholder="https://…、/images/background.webp 或 local:dark" /></label>
+                    <input id="dark-background-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" />
+                    <div class="background-source-actions"><button id="dark-background-upload" class="manager-button" type="button" data-i18n="themeSettings.upload">上传并使用</button><button id="dark-background-delete" class="manager-button ghost" type="button" data-i18n="themeSettings.deleteLocal">删除本地文件</button></div>
+                  </section>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="themeSettings.backgroundEffects">背景效果</h2>
+                <p data-i18n="themeSettings.backgroundEffectsHelp">模糊只作用于背景媒体；正遮罩使背景变暗，负值降低背景透明度。</p>
+              </div>
+              <div class="theme-range-grid">
+                <label><span><strong data-i18n="themeSettings.backgroundBlur">背景模糊</strong><output id="background-blur-value" for="background-blur">0 px</output></span><input id="background-blur" type="range" min="0" max="40" step="1" value="0" /></label>
+                <label><span><strong data-i18n="themeSettings.backgroundOverlay">背景遮罩</strong><output id="background-overlay-value" for="background-overlay">0</output></span><input id="background-overlay" type="range" min="-100" max="100" step="1" value="0" /></label>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="themeSettings.glassSurface">毛玻璃卡片</h2>
+                <p data-i18n="themeSettings.glassSurfaceHelp">这些设置会作用于公开面板的统计、拓扑、链路与节点卡片，也同步用于后台预览。</p>
+              </div>
+              <div class="theme-range-grid">
+                <label><span><strong data-i18n="themeSettings.glassBlur">玻璃模糊</strong><output id="glass-blur-value" for="glass-blur">18 px</output></span><input id="glass-blur" type="range" min="0" max="30" step="1" value="18" /></label>
+                <label><span><strong data-i18n="themeSettings.glassOpacity">卡片不透明度</strong><output id="glass-opacity-value" for="glass-opacity">78%</output></span><input id="glass-opacity" type="range" min="45" max="100" step="1" value="78" /></label>
+                <label><span><strong data-i18n="themeSettings.glassBorder">边框强度</strong><output id="glass-border-value" for="glass-border">18%</output></span><input id="glass-border" type="range" min="0" max="100" step="1" value="18" /></label>
+                <label><span><strong data-i18n="themeSettings.cornerRadius">卡片圆角</strong><output id="corner-radius-value" for="corner-radius">18 px</output></span><input id="corner-radius" type="range" min="8" max="28" step="1" value="18" /></label>
+              </div>
+            </section>
+
+            <div class="site-save-row theme-save-row">
+              <button id="theme-settings-reset" class="manager-button ghost" type="button" data-i18n="themeSettings.reset">恢复主题设置默认值</button>
+              <span id="theme-settings-save-status" class="deployment-status"></span>
+              <button id="theme-settings-save" class="manager-button primary" type="submit" data-i18n="themeSettings.save">保存主题设置</button>
             </div>
           </form>
         </section>

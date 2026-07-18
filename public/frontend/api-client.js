@@ -71,6 +71,26 @@ async function requestFavicon(file, csrfToken) {
   return payload;
 }
 
+async function requestThemeBackground(mode, type, file, csrfToken) {
+  const response = await fetch(`/api/admin/theme/background/${mode}?type=${encodeURIComponent(type)}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-Topology-CSRF": csrfToken,
+    },
+    body: file,
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
 export const adminApi = Object.freeze({
   site() {
     return requestJson(`/api/admin/site?t=${Date.now()}`);
@@ -87,6 +107,15 @@ export const adminApi = Object.freeze({
   },
   deleteFavicon(csrfToken) {
     return requestJson("/api/admin/site/favicon", {
+      method: "DELETE",
+      csrfToken,
+    });
+  },
+  uploadThemeBackground(mode, type, file, csrfToken) {
+    return requestThemeBackground(mode, type, file, csrfToken);
+  },
+  deleteThemeBackground(mode, csrfToken) {
+    return requestJson(`/api/admin/theme/background/${mode}`, {
       method: "DELETE",
       csrfToken,
     });

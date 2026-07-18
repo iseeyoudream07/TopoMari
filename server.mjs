@@ -32,6 +32,7 @@ const agentConfigPath = resolve(rootDir, process.env.AGENT_CONFIG_PATH || "confi
 const agentBackupPath = resolve(rootDir, process.env.AGENT_BACKUP_PATH || "data/agents.backup.json");
 const probeDatabasePath = resolve(rootDir, process.env.PROBE_DB_PATH || "data/probes.db");
 const faviconPath = resolve(rootDir, process.env.SITE_FAVICON_PATH || "data/favicon");
+const themeAssetDir = resolve(rootDir, process.env.THEME_ASSET_DIR || "data/theme/user-assets");
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 const cacheTtlMs = Math.max(1, Number(process.env.CACHE_TTL_SECONDS || 8)) * 1000;
@@ -40,6 +41,10 @@ const basicPassword = process.env.DASHBOARD_PASSWORD || "";
 const maxIngestBodyBytes = Math.max(1024, Number(process.env.MAX_INGEST_BODY_BYTES || 32_768));
 const maxEditorBodyBytes = Math.max(16_384, Number(process.env.MAX_EDITOR_BODY_BYTES || 131_072));
 const maxFaviconBytes = Math.min(5 * 1024 * 1024, Math.max(16_384, Number(process.env.MAX_FAVICON_BYTES || 2 * 1024 * 1024)));
+const maxThemeBackgroundBytes = Math.min(
+  64 * 1024 * 1024,
+  Math.max(1 * 1024 * 1024, Number(process.env.MAX_THEME_BACKGROUND_BYTES || 32 * 1024 * 1024)),
+);
 const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TTL_SECONDS || 604_800));
 const diagnosticApiEnabled = envFlag("ENABLE_DIAGNOSTIC_API");
 const allowUnauthenticatedDashboard = envFlag("ALLOW_UNAUTHENTICATED_DASHBOARD");
@@ -447,6 +452,7 @@ async function siteSettingsPayload({ csrfToken = "" } = {}) {
   return {
     ...sanitizeSiteSettings(config),
     ...await faviconState(),
+    backgroundAssets: await themeBackgroundState(),
     faviconUrl: "/favicon",
     revision,
     csrfToken,
@@ -462,6 +468,7 @@ async function publicSiteSettingsPayload() {
     visualTheme: site.visualTheme,
     customThemeColors: site.customThemeColors,
     themeColors: site.themeColors,
+    themeSettings: site.themeSettings,
     customFavicon: site.customFavicon,
     faviconVersion: site.faviconVersion,
     faviconUrl: site.faviconUrl,
@@ -478,7 +485,67 @@ function faviconMime(body) {
   return "";
 }
 
-async function readBinaryBody(request, maximumBytes) {
+const THEME_BACKGROUND_FORMATS = Object.freeze([
+  { extension: "png", mime: "image/png", type: "image", matches: (body) => body.length >= 8 && body.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) },
+  { extension: "jpg", mime: "image/jpeg", type: "image", matches: (body) => body.length >= 3 && body[0] === 0xff && body[1] === 0xd8 && body[2] === 0xff },
+  { extension: "webp", mime: "image/webp", type: "image", matches: (body) => body.length >= 12 && body.subarray(0, 4).toString("ascii") === "RIFF" && body.subarray(8, 12).toString("ascii") === "WEBP" },
+  { extension: "gif", mime: "image/gif", type: "image", matches: (body) => body.length >= 6 && ["GIF87a", "GIF89a"].includes(body.subarray(0, 6).toString("ascii")) },
+  { extension: "mp4", mime: "video/mp4", type: "video", matches: (body) => body.length >= 12 && body.subarray(4, 8).toString("ascii") === "ftyp" },
+  { extension: "webm", mime: "video/webm", type: "video", matches: (body) => body.length >= 4 && body.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])) },
+]);
+
+function themeBackgroundFormat(body) {
+  return THEME_BACKGROUND_FORMATS.find((format) => format.matches(body)) || null;
+}
+
+function themeBackgroundFile(mode, extension) {
+  return join(themeAssetDir, `background-${mode}.${extension}`);
+}
+
+async function findThemeBackground(mode) {
+  for (const format of THEME_BACKGROUND_FORMATS) {
+    const path = themeBackgroundFile(mode, format.extension);
+    try {
+      const info = await stat(path);
+      if (info.isFile()) return { ...format, path, version: Math.round(info.mtimeMs), size: info.size };
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  return null;
+}
+
+async function themeBackgroundState() {
+  const [light, dark] = await Promise.all([
+    findThemeBackground("light"),
+    findThemeBackground("dark"),
+  ]);
+  const serialize = (asset) => asset
+    ? { exists: true, type: asset.type, mime: asset.mime, version: asset.version, size: asset.size }
+    : { exists: false, type: "", mime: "", version: 0, size: 0 };
+  return { light: serialize(light), dark: serialize(dark) };
+}
+
+async function removeThemeBackground(mode) {
+  await Promise.all(THEME_BACKGROUND_FORMATS.map(async (format) => {
+    try {
+      await unlink(themeBackgroundFile(mode, format.extension));
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }));
+}
+
+async function writeThemeBackground(mode, body, format) {
+  await mkdir(themeAssetDir, { recursive: true });
+  await removeThemeBackground(mode);
+  const destination = themeBackgroundFile(mode, format.extension);
+  const temporary = `${destination}.${randomBytes(6).toString("hex")}.tmp`;
+  await writeFile(temporary, body, { mode: 0o640 });
+  await rename(temporary, destination);
+}
+
+async function readBinaryBody(request, maximumBytes, label = "File") {
   return await new Promise((resolveBody, rejectBody) => {
     const chunks = [];
     let size = 0;
@@ -492,7 +559,7 @@ async function readBinaryBody(request, maximumBytes) {
       chunks.push(chunk);
     });
     request.on("end", () => {
-      if (tooLarge) return rejectBody(new ProbeValidationError("Favicon is too large", 413));
+      if (tooLarge) return rejectBody(new ProbeValidationError(`${label} is too large`, 413));
       resolveBody(Buffer.concat(chunks));
     });
     request.on("error", rejectBody);
@@ -517,6 +584,11 @@ async function handleAdminApi(request, response, url, principal) {
     if (!requireJsonContent(request, response)) return;
     const body = await readJsonBody(request, maxEditorBodyBytes);
     const current = await topologyConfigStore.read();
+    const mergedThemeSettings = {
+      ...(current.config.theme_settings || {}),
+      ...(body.theme_settings || {}),
+      ...(body.themeSettings || {}),
+    };
     const site = sanitizeSiteSettings({
       ...current.config,
       ...body,
@@ -538,6 +610,7 @@ async function handleAdminApi(request, response, url, principal) {
           ?? body.theme_colors?.dark_accent
           ?? current.config.theme_colors?.dark_accent,
       },
+      themeSettings: mergedThemeSettings,
     });
     const result = await topologyConfigStore.write({
       ...current.config,
@@ -553,11 +626,24 @@ async function handleAdminApi(request, response, url, principal) {
         dark_background: site.themeColors.darkBackground,
         dark_accent: site.themeColors.darkAccent,
       },
+      theme_settings: {
+        background_enabled: site.themeSettings.backgroundEnabled,
+        background_type: site.themeSettings.backgroundType,
+        light_background: site.themeSettings.lightBackground,
+        dark_background: site.themeSettings.darkBackground,
+        background_blur: site.themeSettings.backgroundBlur,
+        background_overlay: site.themeSettings.backgroundOverlay,
+        glass_blur: site.themeSettings.glassBlur,
+        glass_opacity: site.themeSettings.glassOpacity,
+        glass_border: site.themeSettings.glassBorder,
+        corner_radius: site.themeSettings.cornerRadius,
+      },
     }, String(body.revision || ""));
     dashboardCache = { expiresAt: 0, value: null, promise: null };
     return json(response, 200, {
       ...site,
       ...await faviconState(),
+      backgroundAssets: await themeBackgroundState(),
       faviconUrl: "/favicon",
       revision: result.revision,
       csrfToken: principal.csrfToken,
@@ -577,7 +663,7 @@ async function handleAdminApi(request, response, url, principal) {
       }
       return json(response, 200, await siteSettingsPayload({ csrfToken: principal.csrfToken }));
     }
-    const body = await readBinaryBody(request, maxFaviconBytes);
+    const body = await readBinaryBody(request, maxFaviconBytes, "Favicon");
     if (!body.length) return json(response, 400, { error: "Favicon file is empty" });
     const mime = faviconMime(body);
     if (!mime) return json(response, 415, { error: "Favicon must be a PNG or ICO file" });
@@ -585,6 +671,32 @@ async function handleAdminApi(request, response, url, principal) {
     return json(response, 200, {
       ...await siteSettingsPayload({ csrfToken: principal.csrfToken }),
       mime,
+    });
+  }
+
+  const backgroundMatch = url.pathname.match(/^\/api\/admin\/theme\/background\/(light|dark)$/);
+  if (backgroundMatch) {
+    if (request.method !== "PUT" && request.method !== "DELETE") {
+      return methodNotAllowed(response, ["PUT", "DELETE"]);
+    }
+    if (!requireEditorCsrf(request, response, principal)) return;
+    const mode = backgroundMatch[1];
+    if (request.method === "DELETE") {
+      await removeThemeBackground(mode);
+      return json(response, 200, { backgroundAssets: await themeBackgroundState() });
+    }
+    const body = await readBinaryBody(request, maxThemeBackgroundBytes, "Theme background");
+    if (!body.length) return json(response, 400, { error: "Theme background file is empty" });
+    const format = themeBackgroundFormat(body);
+    if (!format) return json(response, 415, { error: "Theme background must be PNG, JPEG, WebP, GIF, MP4, or WebM" });
+    const expectedType = url.searchParams.get("type");
+    if (expectedType && expectedType !== format.type) {
+      return json(response, 415, { error: `Selected background type is ${expectedType}, but the uploaded file is ${format.type}` });
+    }
+    await writeThemeBackground(mode, body, format);
+    return json(response, 200, {
+      source: `local:${mode}`,
+      backgroundAssets: await themeBackgroundState(),
     });
   }
 
@@ -606,6 +718,23 @@ async function serveFavicon(response) {
   }
   response.writeHead(200, {
     "Content-Type": mime,
+    "Content-Length": body.length,
+    "Cache-Control": "no-cache",
+    "X-Content-Type-Options": "nosniff",
+  });
+  response.end(body);
+}
+
+async function serveThemeBackground(response, mode) {
+  const asset = await findThemeBackground(mode);
+  if (!asset) {
+    response.writeHead(404);
+    response.end("Theme background not found");
+    return;
+  }
+  const body = await readFile(asset.path);
+  response.writeHead(200, {
+    "Content-Type": asset.mime,
     "Content-Length": body.length,
     "Cache-Control": "no-cache",
     "X-Content-Type-Options": "nosniff",
@@ -797,7 +926,7 @@ async function serveStatic(response, pathname) {
       "Content-Length": body.length,
       "Cache-Control": extname(filePath) === ".html" ? "no-cache" : "public, max-age=3600",
       "X-Content-Type-Options": "nosniff",
-      "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; media-src 'self' blob: https: http:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
     });
     response.end(body);
   } catch (error) {
@@ -815,6 +944,11 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/ingest") return await handleIngest(request, response);
     if (url.pathname === "/api/enroll") return await handleEnroll(request, response);
     if (url.pathname === "/favicon" || url.pathname === "/favicon.ico") return await serveFavicon(response);
+    const backgroundMatch = url.pathname.match(/^\/theme-background\/(light|dark)$/);
+    if (backgroundMatch) {
+      if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
+      return await serveThemeBackground(response, backgroundMatch[1]);
+    }
     if (url.pathname.startsWith("/api/")) {
       return await handleApi(request, response, url);
     }

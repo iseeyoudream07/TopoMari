@@ -17,10 +17,11 @@ TopoMari 是一个可以部署在自己服务器上的 Komari 链路拓扑面板
 - 在独立后台中添加、修改和删除链路，并管理私有探针。
 - 在“设置 → 站点”中修改站点名称、描述和 PNG / ICO Favicon。
 - 在“设置 → 通用”中切换 TopoMari / Glassmorphism 视觉主题，并自定义日间、夜间背景色和强调色。
+- 在一级菜单“主题设置”中分别配置亮暗背景图片或视频、模糊、遮罩、卡片透明度、边框和圆角。
 - 支持简体中文 / English、日间 / 夜间模式、北京时间日出日落自动主题和手机页面。
 - 更新面板时自动备份配置、探针身份和历史数据。
 
-公开面板位于 `/`，打开后不会要求登录。点击右上角齿轮或直接访问 `/admin` 才会进入登录页；登录后可以使用“链路管理”、“设置 → 通用”和“设置 → 站点”。管理员会话使用 HttpOnly Cookie，站点与主题配置写入 `config/topology.json`，自定义 Favicon 写入持久化的 `data/favicon`。
+公开面板位于 `/`，打开后不会要求登录。点击右上角齿轮或直接访问 `/admin` 才会进入登录页；登录后可以使用“链路管理”、“主题设置”、“设置 → 通用”和“设置 → 站点”。管理员会话使用 HttpOnly Cookie，站点与主题配置写入 `config/topology.json`，自定义 Favicon 与上传的背景媒体写入持久化的 `data/` 目录。
 
 一条常见线路大致是：
 
@@ -130,6 +131,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name topology.example.com;
+    client_max_body_size 32m;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -179,9 +181,18 @@ sudo systemctl reload nginx
 
 ### 设置主题和颜色
 
-进入“设置 → 通用”后，可以在 TopoMari 原版与 Glassmorphism 之间切换。Glassmorphism 是针对本项目静态前端原生适配的视觉预设，不会加载外部脚本，也不会替换 TopoMari 的数据接口。
+进入“设置 → 通用”后，可以在 TopoMari 原版与 Glassmorphism 之间切换。Glassmorphism 已原生作用于公开面板的顶部栏、统计卡片、链路拓扑、健康列表和节点卡片，也会统一后台表面；它不会加载外部脚本，也不会替换 TopoMari 的数据接口。
 
 打开“启用自定义配色”后，可以分别调整日间 / 夜间背景色和强调色。颜色只接受六位十六进制值，保存后写入 `config/topology.json` 并立即应用到公开面板。Glassmorphism 的配色与毛玻璃层思路来自 MIT 授权的 [komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism)，许可说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+一级菜单“主题设置”保留主题内部的细节控制：
+
+- 启用或停用自定义背景，并选择图片 / 视频；
+- 为亮色、暗色模式分别填写 HTTPS 地址、站内 `/路径`，或上传 PNG、JPEG、WebP、GIF、MP4、WebM 文件；
+- 调节背景模糊和遮罩强度；
+- 调节公开面板毛玻璃卡片的模糊、不透明度、边框强度和圆角。
+
+上传文件最大 32 MiB，保存在 `data/theme/user-assets/`。远程背景地址不会经 TopoMari 服务端代理，而是由访客浏览器直接请求，因此第三方背景主机能看到访客 IP；在意隐私时请优先上传到本机。主题样式的选择仍固定在“设置 → 通用”，不会和这些细节控制混在一起。
 
 ### 安装私有探针
 
@@ -260,51 +271,29 @@ sudo bash /tmp/update-topology-agent.sh
 
 ### 卸载 Dashboard
 
-卸载前建议先备份运行数据。`.env`、`config/` 和 `data/` 分别包含连接凭据、链路与 Agent 身份、历史探测数据：
-
-```bash
-sudo tar -C /opt -czf /root/topomari-runtime-backup.tar.gz \
-  TopoMari/.env TopoMari/config TopoMari/data
-```
-
-Docker Compose 部署可以这样停止并移除容器：
+在项目目录运行一键卸载脚本：
 
 ```bash
 cd /opt/TopoMari || exit 1
-sudo docker compose down
+sudo bash scripts/uninstall-dashboard.sh
 ```
 
-如果使用的是非 Docker systemd 服务，请改为执行：
+脚本会依次停止 Docker Compose 和非 Docker systemd 服务，备份 `.env`、`config/`、`data/`，移除 `komari-topology-dashboard.service` 与默认的 Nginx `topomari` 站点配置，最后把项目目录移动为带时间戳的 `TopoMari.uninstalled-*`。它不会使用 `docker compose down -v`，也不会永久删除运行数据；完成时会打印运行数据备份、系统配置备份和可恢复项目目录的确切位置。
+
+如果 Nginx 配置文件不是默认的 `topomari`，运行时传入文件名（只写文件名，不写路径）：
 
 ```bash
-sudo systemctl disable --now komari-topology-dashboard.service
-sudo rm -f /etc/systemd/system/komari-topology-dashboard.service
-sudo systemctl daemon-reload
+cd /opt/TopoMari || exit 1
+sudo TOPOMARI_NGINX_SITE=topology.example.com bash scripts/uninstall-dashboard.sh
 ```
 
-不再使用原域名时，可以一并移除 Nginx 站点配置：
+恢复时，把 `TopoMari.uninstalled-时间戳` 改回原目录名，再恢复 Nginx / systemd 配置并启动服务即可。确认长期不再需要后，才手动删除该目录和 `/var/backups/topomari/` 下对应备份。
+
+脚本不会连接其他服务器，因此私有探针需要按照下一节在每台来源服务器上分别卸载。HTTPS 证书也会保留；确实不再使用原域名时，可单独执行：
 
 ```bash
-sudo rm -f /etc/nginx/sites-enabled/topomari
-sudo rm -f /etc/nginx/sites-available/topomari
-sudo nginx -t
-sudo systemctl reload nginx
+sudo certbot delete --cert-name topology.example.com
 ```
-
-默认建议先把项目目录改名保留，确认备份可用且不再需要恢复后再永久删除：
-
-```bash
-cd /opt || exit 1
-sudo mv /opt/TopoMari /opt/TopoMari.uninstalled
-```
-
-确认无需保留 `.env`、链路配置、Agent 身份和历史数据后，才执行不可恢复的删除：
-
-```bash
-sudo rm -rf /opt/TopoMari.uninstalled
-```
-
-如需同时删除 HTTPS 证书，可以运行 `sudo certbot delete --cert-name topology.example.com`，并将示例域名替换为实际证书名称。
 
 ### 卸载私有探针
 

@@ -6,6 +6,11 @@ import {
   defaultVisualThemeColors,
   normalizeVisualThemeSettings,
 } from "./frontend/site-theme.js";
+import {
+  applyThemeSettings,
+  DEFAULT_THEME_SETTINGS,
+  normalizeThemeSettings,
+} from "./frontend/theme-background.js";
 import { initTopologyEditor } from "./editor.js";
 
 const elements = {
@@ -35,6 +40,35 @@ const elements = {
   themeLightAccent: document.getElementById("theme-light-accent"),
   themeDarkBackground: document.getElementById("theme-dark-background"),
   themeDarkAccent: document.getElementById("theme-dark-accent"),
+  themeSettingsForm: document.getElementById("theme-settings-form"),
+  themeSettingsSave: document.getElementById("theme-settings-save"),
+  themeSettingsSaveStatus: document.getElementById("theme-settings-save-status"),
+  themeSettingsReset: document.getElementById("theme-settings-reset"),
+  backgroundEnabled: document.getElementById("background-enabled"),
+  backgroundType: document.getElementById("background-type"),
+  backgroundSourceFields: document.getElementById("background-source-fields"),
+  lightBackgroundSource: document.getElementById("light-background-source"),
+  lightBackgroundFile: document.getElementById("light-background-file"),
+  lightBackgroundUpload: document.getElementById("light-background-upload"),
+  lightBackgroundDelete: document.getElementById("light-background-delete"),
+  lightBackgroundStatus: document.getElementById("light-background-status"),
+  darkBackgroundSource: document.getElementById("dark-background-source"),
+  darkBackgroundFile: document.getElementById("dark-background-file"),
+  darkBackgroundUpload: document.getElementById("dark-background-upload"),
+  darkBackgroundDelete: document.getElementById("dark-background-delete"),
+  darkBackgroundStatus: document.getElementById("dark-background-status"),
+  backgroundBlur: document.getElementById("background-blur"),
+  backgroundBlurValue: document.getElementById("background-blur-value"),
+  backgroundOverlay: document.getElementById("background-overlay"),
+  backgroundOverlayValue: document.getElementById("background-overlay-value"),
+  glassBlur: document.getElementById("glass-blur"),
+  glassBlurValue: document.getElementById("glass-blur-value"),
+  glassOpacity: document.getElementById("glass-opacity"),
+  glassOpacityValue: document.getElementById("glass-opacity-value"),
+  glassBorder: document.getElementById("glass-border"),
+  glassBorderValue: document.getElementById("glass-border-value"),
+  cornerRadius: document.getElementById("corner-radius"),
+  cornerRadiusValue: document.getElementById("corner-radius-value"),
   siteForm: document.getElementById("site-settings-form"),
   siteName: document.getElementById("site-name-input"),
   siteDescription: document.getElementById("site-description-input"),
@@ -73,6 +107,7 @@ function updateSiteIdentity(site, { syncVisualTheme = true } = {}) {
   document.title = `${siteName} · ${t("admin.consoleTitle")}`;
   if (syncVisualTheme) {
     applySiteTheme(site);
+    applyThemeSettings(site);
     setAutoThemeBeijing(site.autoThemeBeijing === true);
   }
   if (site.faviconVersion) updateFaviconImages(site.faviconVersion);
@@ -126,11 +161,11 @@ function openSidebar() {
 
 function selectedView() {
   const requested = window.location.hash.slice(1);
-  return ["routes", "general", "site"].includes(requested) ? requested : "routes";
+  return ["routes", "theme", "general", "site"].includes(requested) ? requested : "routes";
 }
 
 function activateView(view, { updateHash = true } = {}) {
-  const resolved = ["general", "site"].includes(view) ? view : "routes";
+  const resolved = ["theme", "general", "site"].includes(view) ? view : "routes";
   document.querySelectorAll("[data-admin-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.adminPanel !== resolved;
   });
@@ -140,8 +175,19 @@ function activateView(view, { updateHash = true } = {}) {
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  elements.settingsToggle.classList.toggle("is-active", resolved === "general" || resolved === "site");
-  const breadcrumbKey = resolved === "general" ? "admin.general" : resolved === "site" ? "admin.site" : "admin.routes";
+  const settingsActive = resolved === "general" || resolved === "site";
+  elements.settingsToggle.classList.toggle("is-active", settingsActive);
+  if (settingsActive) {
+    elements.settingsToggle.setAttribute("aria-expanded", "true");
+    elements.settingsSubmenu.hidden = false;
+  }
+  const breadcrumbKey = resolved === "theme"
+    ? "admin.themeSettings"
+    : resolved === "general"
+      ? "admin.general"
+      : resolved === "site"
+        ? "admin.site"
+        : "admin.routes";
   elements.breadcrumb.textContent = t(breadcrumbKey);
   if (updateHash) history.replaceState(null, "", `#${resolved}`);
   closeSidebar();
@@ -194,6 +240,103 @@ function fillGeneralForm(site) {
   elements.generalSaveStatus.textContent = "";
 }
 
+function themeBackgroundControls(mode) {
+  const prefix = mode === "dark" ? "dark" : "light";
+  return {
+    source: elements[`${prefix}BackgroundSource`],
+    file: elements[`${prefix}BackgroundFile`],
+    upload: elements[`${prefix}BackgroundUpload`],
+    delete: elements[`${prefix}BackgroundDelete`],
+    status: elements[`${prefix}BackgroundStatus`],
+  };
+}
+
+function humanFileSize(bytes) {
+  const size = Number(bytes) || 0;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KiB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function updateThemeRangeOutputs(settings = themeSettingsDraft()) {
+  elements.backgroundBlurValue.value = `${settings.backgroundBlur} px`;
+  elements.backgroundOverlayValue.value = String(settings.backgroundOverlay);
+  elements.glassBlurValue.value = `${settings.glassBlur} px`;
+  elements.glassOpacityValue.value = `${settings.glassOpacity}%`;
+  elements.glassBorderValue.value = `${settings.glassBorder}%`;
+  elements.cornerRadiusValue.value = `${settings.cornerRadius} px`;
+}
+
+function updateThemeAssetStatus() {
+  for (const mode of ["light", "dark"]) {
+    const controls = themeBackgroundControls(mode);
+    const asset = siteState?.backgroundAssets?.[mode];
+    controls.delete.disabled = !asset?.exists;
+    controls.status.textContent = asset?.exists
+      ? t("themeSettings.localReady", {
+        type: t(asset.type === "video" ? "themeSettings.video" : "themeSettings.image"),
+        size: humanFileSize(asset.size),
+      })
+      : t("themeSettings.noLocal");
+  }
+}
+
+function themeSettingsDraft() {
+  return normalizeThemeSettings({
+    backgroundEnabled: elements.backgroundEnabled.checked,
+    backgroundType: elements.backgroundType.value,
+    lightBackground: elements.lightBackgroundSource.value,
+    darkBackground: elements.darkBackgroundSource.value,
+    backgroundBlur: elements.backgroundBlur.value,
+    backgroundOverlay: elements.backgroundOverlay.value,
+    glassBlur: elements.glassBlur.value,
+    glassOpacity: elements.glassOpacity.value,
+    glassBorder: elements.glassBorder.value,
+    cornerRadius: elements.cornerRadius.value,
+  });
+}
+
+function previewThemeSettings() {
+  const settings = themeSettingsDraft();
+  elements.backgroundSourceFields.dataset.enabled = String(settings.backgroundEnabled);
+  updateThemeRangeOutputs(settings);
+  applyThemeSettings(settings);
+}
+
+function setThemeSettingsForm(settingsValue) {
+  const settings = normalizeThemeSettings(settingsValue);
+  elements.backgroundEnabled.checked = settings.backgroundEnabled;
+  elements.backgroundType.value = settings.backgroundType;
+  elements.lightBackgroundSource.value = settings.lightBackground;
+  elements.darkBackgroundSource.value = settings.darkBackground;
+  elements.backgroundBlur.value = String(settings.backgroundBlur);
+  elements.backgroundOverlay.value = String(settings.backgroundOverlay);
+  elements.glassBlur.value = String(settings.glassBlur);
+  elements.glassOpacity.value = String(settings.glassOpacity);
+  elements.glassBorder.value = String(settings.glassBorder);
+  elements.cornerRadius.value = String(settings.cornerRadius);
+  elements.backgroundSourceFields.dataset.enabled = String(settings.backgroundEnabled);
+  updateThemeRangeOutputs(settings);
+  elements.themeSettingsSaveStatus.textContent = "";
+  updateThemeAssetStatus();
+}
+
+function siteSavePayload({
+  siteName = siteState.siteName,
+  description = siteState.description,
+  autoThemeBeijing = siteState.autoThemeBeijing,
+  visualSettings = normalizeVisualThemeSettings(siteState),
+  themeSettings = normalizeThemeSettings(siteState),
+} = {}) {
+  return {
+    siteName,
+    description,
+    autoThemeBeijing,
+    ...visualSettings,
+    themeSettings,
+  };
+}
+
 function fillSiteForm(site) {
   siteState = site;
   elements.siteName.value = site.siteName || "TopoMari";
@@ -202,6 +345,7 @@ function fillSiteForm(site) {
   elements.autoTheme.checked = site.autoThemeBeijing === true;
   elements.siteSaveStatus.textContent = "";
   fillGeneralForm(site);
+  setThemeSettingsForm(site);
   updateFaviconStatus();
   updateSiteIdentity(site);
   updateFaviconImages(site.faviconVersion || Date.now());
@@ -324,18 +468,123 @@ elements.themeColorsReset.addEventListener("click", () => {
   previewGeneralTheme();
 });
 
+[
+  elements.backgroundEnabled,
+  elements.backgroundType,
+].forEach((input) => input.addEventListener("change", previewThemeSettings));
+
+[
+  elements.lightBackgroundSource,
+  elements.darkBackgroundSource,
+].forEach((input) => input.addEventListener("change", previewThemeSettings));
+
+[
+  elements.backgroundBlur,
+  elements.backgroundOverlay,
+  elements.glassBlur,
+  elements.glassOpacity,
+  elements.glassBorder,
+  elements.cornerRadius,
+].forEach((input) => input.addEventListener("input", previewThemeSettings));
+
+elements.themeSettingsReset.addEventListener("click", () => {
+  setThemeSettingsForm(DEFAULT_THEME_SETTINGS);
+  previewThemeSettings();
+});
+
+async function persistThemeSettings(noticeKey = "themeSettings.saved") {
+  if (!siteState) return null;
+  elements.themeSettingsSave.disabled = true;
+  elements.themeSettingsSaveStatus.textContent = t("site.saving");
+  try {
+    const site = await adminApi.saveSite(siteSavePayload({
+      themeSettings: themeSettingsDraft(),
+    }), siteState.revision, session.csrfToken);
+    fillSiteForm(site);
+    editorController?.syncSiteSettings?.(site, site.revision);
+    elements.themeSettingsSaveStatus.textContent = t(noticeKey);
+    showNotice(t(noticeKey));
+    return site;
+  } catch (error) {
+    if (await handleUnauthorized(error)) return null;
+    elements.themeSettingsSaveStatus.textContent = error.message;
+    showNotice(error.message, "error");
+    if (error.status === 409) await loadSiteSettings();
+    return null;
+  } finally {
+    elements.themeSettingsSave.disabled = false;
+  }
+}
+
+elements.themeSettingsForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await persistThemeSettings();
+});
+
+async function uploadThemeBackground(mode) {
+  const controls = themeBackgroundControls(mode);
+  const file = controls.file.files?.[0];
+  if (!file) {
+    showNotice(t("themeSettings.chooseFile"), "error");
+    return;
+  }
+  if (file.size > 32 * 1024 * 1024) {
+    showNotice(t("themeSettings.fileTooLarge"), "error");
+    return;
+  }
+
+  const type = file.type.startsWith("video/") ? "video" : "image";
+  controls.upload.disabled = true;
+  try {
+    const uploaded = await adminApi.uploadThemeBackground(mode, type, file, session.csrfToken);
+    siteState = { ...siteState, backgroundAssets: uploaded.backgroundAssets };
+    controls.source.value = uploaded.source;
+    controls.file.value = "";
+    elements.backgroundType.value = type;
+    elements.backgroundEnabled.checked = true;
+    updateThemeAssetStatus();
+    previewThemeSettings();
+    await persistThemeSettings("themeSettings.uploaded");
+  } catch (error) {
+    if (!await handleUnauthorized(error)) showNotice(error.message, "error");
+  } finally {
+    controls.upload.disabled = false;
+  }
+}
+
+async function deleteThemeBackground(mode) {
+  const controls = themeBackgroundControls(mode);
+  if (!siteState?.backgroundAssets?.[mode]?.exists || !window.confirm(t("themeSettings.deleteConfirm"))) return;
+  controls.delete.disabled = true;
+  try {
+    const deleted = await adminApi.deleteThemeBackground(mode, session.csrfToken);
+    siteState = { ...siteState, backgroundAssets: deleted.backgroundAssets };
+    if (controls.source.value.trim() === `local:${mode}`) controls.source.value = "";
+    updateThemeAssetStatus();
+    previewThemeSettings();
+    await persistThemeSettings("themeSettings.deleted");
+  } catch (error) {
+    if (!await handleUnauthorized(error)) showNotice(error.message, "error");
+  } finally {
+    controls.delete.disabled = !siteState?.backgroundAssets?.[mode]?.exists;
+  }
+}
+
+elements.lightBackgroundUpload.addEventListener("click", () => uploadThemeBackground("light"));
+elements.darkBackgroundUpload.addEventListener("click", () => uploadThemeBackground("dark"));
+elements.lightBackgroundDelete.addEventListener("click", () => deleteThemeBackground("light"));
+elements.darkBackgroundDelete.addEventListener("click", () => deleteThemeBackground("dark"));
+
 elements.generalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!siteState) return;
   elements.generalSave.disabled = true;
   elements.generalSaveStatus.textContent = t("site.saving");
   try {
-    const site = await adminApi.saveSite({
-      siteName: siteState.siteName,
-      description: siteState.description,
+    const site = await adminApi.saveSite(siteSavePayload({
       autoThemeBeijing: elements.autoTheme.checked,
-      ...generalThemeDraft(),
-    }, siteState.revision, session.csrfToken);
+      visualSettings: generalThemeDraft(),
+    }), siteState.revision, session.csrfToken);
     fillSiteForm(site);
     editorController?.syncSiteSettings?.(site, site.revision);
     elements.generalSaveStatus.textContent = t("general.saved");
@@ -356,12 +605,10 @@ elements.siteForm.addEventListener("submit", async (event) => {
   elements.siteSave.disabled = true;
   elements.siteSaveStatus.textContent = t("site.saving");
   try {
-    const site = await adminApi.saveSite({
+    const site = await adminApi.saveSite(siteSavePayload({
       siteName: elements.siteName.value.trim(),
       description: elements.siteDescription.value.trim(),
-      autoThemeBeijing: siteState.autoThemeBeijing,
-      ...normalizeVisualThemeSettings(siteState),
-    }, siteState.revision, session.csrfToken);
+    }), siteState.revision, session.csrfToken);
     fillSiteForm(site);
     editorController?.syncSiteSettings?.(site, site.revision);
     elements.siteSaveStatus.textContent = t("site.saved");
@@ -416,6 +663,7 @@ elements.faviconReset.addEventListener("click", async () => {
 document.addEventListener("topomari:languagechange", () => {
   activateView(selectedView(), { updateHash: false });
   updateFaviconStatus();
+  updateThemeAssetStatus();
   if (siteState) updateSiteIdentity(siteState, { syncVisualTheme: false });
 });
 

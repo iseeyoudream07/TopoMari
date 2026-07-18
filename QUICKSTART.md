@@ -74,6 +74,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name topology.example.com;
+    client_max_body_size 32m;
 
     location / {
         proxy_pass http://127.0.0.1:3000;

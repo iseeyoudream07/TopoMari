@@ -1,6 +1,6 @@
 # Third-party notices
 
-TopoMari's optional `Glassmorphism` visual preset adapts palette and glass-surface ideas from
+TopoMari's optional `Glassmorphism` visual preset adapts palette, glass-surface, and configurable-background ideas from
 [sanrokamlan-prog/komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism).
 TopoMari does not embed that project's Vue application or Komari-specific data layer.
 
