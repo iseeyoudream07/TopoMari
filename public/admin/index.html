@@ -11,11 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.8.0-theme-settings"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.8.0-theme-settings" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.0-theme-settings" />
-    <link rel="stylesheet" href="/admin.css?v=2.8.0-theme-settings" />
-    <script type="module" src="/admin.js?v=2.8.0-theme-settings"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.1-globe-overview"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.1-globe-overview" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.1-globe-overview" />
+    <link rel="stylesheet" href="/admin.css?v=2.8.1-globe-overview" />
+    <script type="module" src="/admin.js?v=2.8.1-globe-overview"></script>
   </head>
   <body class="admin-body">
     <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
@@ -256,11 +256,16 @@
             <div>
               <p class="admin-kicker" data-i18n="admin.themeSettingsPath">主题设置</p>
               <h1 data-i18n="themeSettings.title">主题设置</h1>
-              <p data-i18n="themeSettings.description">精细调整公开面板的背景媒体、毛玻璃强度、边框和圆角；主题样式仍在“设置 → 通用”中切换。</p>
+              <p data-i18n="themeSettings.description">精细调整 Glassmorphism 的背景媒体、毛玻璃强度、边框和圆角；TopoMari 原版始终保留内置背景。</p>
             </div>
           </div>
 
           <form id="theme-settings-form" class="site-settings-form">
+            <div id="theme-settings-lock" class="theme-exclusive-note" hidden role="status">
+              <strong data-i18n="themeSettings.exclusiveTitle">Glassmorphism 专属设置</strong>
+              <span data-i18n="themeSettings.exclusiveHelp">请先在“设置 → 通用”中切换并保存 Glassmorphism。TopoMari 原版不接受自定义背景或玻璃表面修改。</span>
+            </div>
+            <fieldset id="theme-settings-controls" class="theme-settings-controls">
             <section class="settings-card theme-background-card">
               <div class="settings-card-copy">
                 <h2 data-i18n="themeSettings.background">自定义背景</h2>
@@ -318,6 +323,7 @@
               <span id="theme-settings-save-status" class="deployment-status"></span>
               <button id="theme-settings-save" class="manager-button primary" type="submit" data-i18n="themeSettings.save">保存主题设置</button>
             </div>
+            </fieldset>
           </form>
         </section>
 

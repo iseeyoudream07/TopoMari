@@ -1133,3 +1133,42 @@
     min-height: 44px;
   }
 }
+
+.theme-settings-controls {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.theme-exclusive-note {
+  display: grid;
+  gap: 5px;
+  padding: 15px 17px;
+  border: 1px solid color-mix(in srgb, var(--amber) 36%, transparent);
+  border-radius: 12px;
+  background: var(--amber-soft);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.theme-exclusive-note[hidden] {
+  display: none;
+}
+
+.theme-exclusive-note strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.theme-settings-controls:disabled {
+  opacity: 0.48;
+}
+
+#theme-settings-form[data-locked="true"] .theme-settings-controls {
+  pointer-events: none;
+  filter: saturate(0.42);
+}

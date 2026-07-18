@@ -237,6 +237,14 @@ function renderNodeEditor(route, index) {
         <span>${escapeHtml(t("editor.region"))}</span>
         <input type="text" maxlength="160" data-node-field="region" value="${escapeHtml(node.region || "")}" />
       </label>
+      <label>
+        <span>${escapeHtml(t("editor.latitude"))}</span>
+        <input type="number" min="-90" max="90" step="0.000001" inputmode="decimal" data-node-field="latitude" value="${escapeHtml(node.latitude ?? "")}" />
+      </label>
+      <label>
+        <span>${escapeHtml(t("editor.longitude"))}</span>
+        <input type="number" min="-180" max="180" step="0.000001" inputmode="decimal" data-node-field="longitude" value="${escapeHtml(node.longitude ?? "")}" />
+      </label>
     </div>`;
 }
 
@@ -578,9 +586,15 @@ function handleSelectionInput(event) {
   const route = currentRoute();
   if (!route) return;
   if (event.target.dataset.nodeField) {
-    route.nodes[selectedIndex][event.target.dataset.nodeField] = event.target.value;
+    const field = event.target.dataset.nodeField;
+    if (["latitude", "longitude"].includes(field)) {
+      if (event.target.value === "") delete route.nodes[selectedIndex][field];
+      else route.nodes[selectedIndex][field] = Number(event.target.value);
+    } else {
+      route.nodes[selectedIndex][field] = event.target.value;
+    }
     markDirty();
-    if (event.target.dataset.nodeField === "label") {
+    if (field === "label") {
       renderPath();
       renderRouteList();
     }
@@ -616,6 +630,8 @@ function handleSelectionChange(event) {
       current.label = node.name;
       current.region = node.region || "";
     }
+    delete current.latitude;
+    delete current.longitude;
     syncRoute(route);
     const privateEdge = route.edges[selectedIndex] || route.edges[selectedIndex - 1];
     if (privateEdge?.probe_id && !privateEdge.agent_id) {

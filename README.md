@@ -11,13 +11,14 @@ TopoMari 是一个可以部署在自己服务器上的 Komari 链路拓扑面板
 ## 它能做什么
 
 - 同时查看多条线路和每一段链路的健康状态。
+- 在发光地球上按拓扑方向显示链路弧线、地区节点和传输光点。
 - 读取 Komari 节点与 Ping 任务，估算用户到中转机的延迟。
 - 在中转机、落地机上安装轻量探针，测量两台服务器之间的真实 TCP 延迟。
 - 记录最近一段时间的延迟与丢包，方便发现线路波动。
 - 在独立后台中添加、修改和删除链路，并管理私有探针。
 - 在“设置 → 站点”中修改站点名称、描述和 PNG / ICO Favicon。
 - 在“设置 → 通用”中切换 TopoMari / Glassmorphism 视觉主题，并自定义日间、夜间背景色和强调色。
-- 在一级菜单“主题设置”中分别配置亮暗背景图片或视频、模糊、遮罩、卡片透明度、边框和圆角。
+- 启用 Glassmorphism 后，在一级菜单“主题设置”中配置亮暗背景图片或视频、模糊、遮罩、卡片透明度、边框和圆角。
 - 支持简体中文 / English、日间 / 夜间模式、北京时间日出日落自动主题和手机页面。
 - 更新面板时自动备份配置、探针身份和历史数据。
 
@@ -179,13 +180,15 @@ sudo systemctl reload nginx
 
 仓库中的 Alpha / Beta 线路只是演示数据。接入真实 Komari 后，请在管理页面中换成自己的节点和任务。
 
+顶部地球会直接按照链路节点顺序绘制传输方向。节点可在 `config/topology.json` 中同时提供 `latitude` 与 `longitude` 以精确定位；未配置坐标时，会从 `region`、节点名称中的城市或 `JP`、`US`、`SG` 等地区代码推断，并为无法识别的演示节点分配稳定的备用位置。坐标和地区名称会随公开面板数据一起展示，请只填写适合公开的信息。
+
 ### 设置主题和颜色
 
 进入“设置 → 通用”后，可以在 TopoMari 原版与 Glassmorphism 之间切换。Glassmorphism 已原生作用于公开面板的顶部栏、统计卡片、链路拓扑、健康列表和节点卡片，也会统一后台表面；它不会加载外部脚本，也不会替换 TopoMari 的数据接口。
 
 打开“启用自定义配色”后，可以分别调整日间 / 夜间背景色和强调色。颜色只接受六位十六进制值，保存后写入 `config/topology.json` 并立即应用到公开面板。Glassmorphism 的配色与毛玻璃层思路来自 MIT 授权的 [komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism)，许可说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-一级菜单“主题设置”保留主题内部的细节控制：
+一级菜单“主题设置”是 Glassmorphism 专属的细节控制。必须先在“设置 → 通用”中选择并保存 Glassmorphism；TopoMari 原版始终使用自己的内置背景，后台和接口都不会允许它修改背景或玻璃参数。切回原版不会删除已经保存的 Glassmorphism 设置，再次切换回来时可以继续使用。
 
 - 启用或停用自定义背景，并选择图片 / 视频；
 - 为亮色、暗色模式分别填写 HTTPS 地址、站内 `/路径`，或上传 PNG、JPEG、WebP、GIF、MP4、WebM 文件；

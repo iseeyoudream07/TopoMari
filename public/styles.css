@@ -1735,3 +1735,294 @@ h2 {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* 2.8.1 cockpit overview: structural layout only; theme surfaces live in theme.css. */
+.overview-stage {
+  position: relative;
+  margin-bottom: 22px;
+}
+
+.overview-stage .app-header {
+  align-items: center;
+  flex-direction: row;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+.overview-stage .header-actions {
+  width: auto;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.overview-content {
+  display: grid;
+  min-height: 330px;
+  align-items: stretch;
+  grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr);
+  gap: clamp(18px, 3vw, 52px);
+}
+
+.overview-stage .stats-grid {
+  display: grid;
+  align-content: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  border: 0;
+}
+
+.overview-stage .stat-card {
+  display: flex;
+  min-width: 0;
+  min-height: 126px;
+  align-items: stretch;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 17px 18px;
+}
+
+.stat-card-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.overview-stage .stat-label {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-stage .stat-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
+.overview-stage .stat-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.overview-stage .stat-value {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  overflow: hidden;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-unit {
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.route-globe {
+  position: relative;
+  min-width: 0;
+  height: 330px;
+  margin: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.route-globe::before {
+  position: absolute;
+  z-index: -1;
+  inset: 14% 7% 0;
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.route-globe canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.route-globe canvas[data-ready="true"] {
+  opacity: 1;
+}
+
+.route-globe-topline {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.route-globe .source-chip {
+  display: inline-flex;
+  width: auto;
+  max-width: min(58%, 230px);
+  margin: 0;
+  overflow: hidden;
+  justify-content: flex-start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-globe .source-chip span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.route-globe-counts,
+.route-globe-counts > span {
+  display: flex;
+  align-items: center;
+}
+
+.route-globe-counts {
+  gap: 6px;
+}
+
+.route-globe-counts > span {
+  min-height: 29px;
+  gap: 5px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.route-globe-counts strong {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.route-globe-counts span span {
+  font-size: 10px;
+}
+
+.route-globe-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.route-globe-caption {
+  position: absolute;
+  z-index: 2;
+  right: 14px;
+  bottom: 13px;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  pointer-events: none;
+  text-align: right;
+}
+
+.route-globe-caption strong {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.route-globe-caption span {
+  font-size: 10px;
+}
+
+@media (max-width: 1120px) {
+  .overview-content {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.76fr);
+    gap: 18px;
+  }
+
+  .overview-stage .stat-card {
+    min-height: 112px;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 900px) {
+  .overview-content {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .overview-stage .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .route-globe {
+    height: 330px;
+  }
+}
+
+@media (max-width: 620px) {
+  .overview-stage .app-header {
+    gap: 14px;
+  }
+
+  .overview-stage .brand-mark {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+
+  .overview-stage h1 {
+    max-width: min(55vw, 280px);
+    overflow: hidden;
+    font-size: 22px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .overview-stage .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .overview-stage .stat-card {
+    min-height: 104px;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .route-globe {
+    height: 292px;
+  }
+
+  .route-globe-caption {
+    display: none;
+  }
+}
+
+@media (max-width: 390px) {
+  .overview-stage .brand-lockup {
+    gap: 9px;
+  }
+
+  .overview-stage h1 {
+    max-width: 46vw;
+    font-size: 19px;
+  }
+
+  .route-globe-counts > span {
+    padding-inline: 7px;
+  }
+
+  .route-globe-counts span span {
+    display: none;
+  }
+}

@@ -42,7 +42,7 @@ function sampleConfig() {
         name: "Test route",
         nodes: [
           { id: "client", label: "Local", type: "client", ip: "192.0.2.1" },
-          { id: "relay", label: "Relay", type: "server", raw: { password: "secret" } },
+          { id: "relay", label: "Relay", type: "server", latitude: 35.6762, longitude: 139.6503, raw: { password: "secret" } },
           { id: "internet", label: "Internet", type: "target" },
         ],
         edges: [
@@ -83,6 +83,18 @@ test("topology editor whitelist removes target addresses and arbitrary secrets",
   assert.equal(normalized.visual_theme, "topomari");
   assert.equal(normalized.custom_theme_colors, false);
   assert.equal(normalized.theme_colors.light_background, "#eeede5");
+  assert.equal(normalized.routes[0].nodes[1].latitude, 35.6762);
+  assert.equal(normalized.routes[0].nodes[1].longitude, 139.6503);
+});
+
+test("topology node coordinates must be complete and within globe bounds", () => {
+  const incomplete = sampleConfig();
+  delete incomplete.routes[0].nodes[1].longitude;
+  assert.throws(() => sanitizeTopologyConfig(incomplete), /latitude and longitude must be configured together/);
+
+  const invalid = sampleConfig();
+  invalid.routes[0].nodes[1].latitude = 91;
+  assert.throws(() => sanitizeTopologyConfig(invalid), /node latitude must be between -90 and 90/);
 });
 
 test("site settings sanitize the public metadata and Beijing theme option", () => {
