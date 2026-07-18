@@ -636,8 +636,8 @@ function handleSelectionChange(event) {
   }
 }
 
-function bindEvents() {
-  elements.toggle.addEventListener("click", () => {
+function bindEvents({ embedded = false } = {}) {
+  elements.toggle?.addEventListener("click", () => {
     elements.panel.hidden = !elements.panel.hidden;
     elements.toggle.setAttribute("aria-expanded", String(!elements.panel.hidden));
     if (!elements.panel.hidden) {
@@ -645,10 +645,10 @@ function bindEvents() {
       elements.panel.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   });
-  elements.close.addEventListener("click", () => {
+  elements.close?.addEventListener("click", () => {
     elements.panel.hidden = true;
-    elements.toggle.setAttribute("aria-expanded", "false");
-    elements.toggle.focus();
+    elements.toggle?.setAttribute("aria-expanded", "false");
+    elements.toggle?.focus();
   });
   elements.routeList.addEventListener("click", (event) => {
     const button = event.target.closest("[data-route-index]");
@@ -707,9 +707,19 @@ function bindEvents() {
     event.returnValue = "";
   });
   probeStatusTimer = window.setInterval(() => {
-    if (!elements.panel.hidden && document.visibilityState === "visible") refreshProbeStatus();
+    if ((embedded || !elements.panel.hidden) && document.visibilityState === "visible") refreshProbeStatus();
   }, probeStatusRefreshMs);
   window.addEventListener("pagehide", () => window.clearInterval(probeStatusTimer), { once: true });
+}
+
+function syncSiteSettings(site, nextRevision) {
+  if (!draft || !site) return;
+  draft.site_name = site.siteName || draft.site_name;
+  draft.title = site.siteName || draft.title;
+  draft.description = site.description || draft.description;
+  draft.auto_theme_beijing = site.autoThemeBeijing === true;
+  if (nextRevision) revision = nextRevision;
+  if (bootstrap?.config) bootstrap.config = clone(draft);
 }
 
 async function loadBootstrap() {
@@ -726,8 +736,8 @@ async function loadBootstrap() {
   renderEditor();
 }
 
-export async function initTopologyEditor({ onSaved = () => {} } = {}) {
-  if (!elements.toggle || !elements.panel) return;
+export async function initTopologyEditor({ onSaved = () => {}, embedded = false } = {}) {
+  if (!elements.panel || (!embedded && !elements.toggle)) return null;
   onSavedCallback = onSaved;
   document.addEventListener("topomari:languagechange", () => {
     if (draft) renderEditor();
@@ -738,9 +748,16 @@ export async function initTopologyEditor({ onSaved = () => {} } = {}) {
   });
   try {
     await loadBootstrap();
-    bindEvents();
-    elements.toggle.hidden = false;
+    bindEvents({ embedded });
+    if (embedded) elements.panel.hidden = false;
+    else elements.toggle.hidden = false;
+    return {
+      available: true,
+      reload: loadBootstrap,
+      syncSiteSettings,
+    };
   } catch (error) {
-    if (error.status !== 404) console.warn(`Topology editor unavailable: ${error.message}`);
+    if (error.status === 404) return { available: false };
+    throw error;
   }
 }

@@ -9,10 +9,10 @@ test("identifies only the explicitly gated diagnostic APIs", () => {
   assert.equal(isDiagnosticApiPath("/api/node-recent"), false);
 });
 
-test("refuses live mode without dashboard authentication", () => {
+test("refuses live mode without admin credentials", () => {
   assert.throws(
     () => validateDashboardAuthConfig({ demoMode: false }),
-    /Live mode requires DASHBOARD_USER and DASHBOARD_PASSWORD/,
+    /Live mode requires DASHBOARD_USER and DASHBOARD_PASSWORD for the admin console/,
   );
   assert.equal(
     validateDashboardAuthConfig({

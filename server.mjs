@@ -1,15 +1,21 @@
 import { createServer } from "node:http";
-import { readFile, stat } from "node:fs/promises";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
+import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import {
+  ADMIN_SESSION_COOKIE,
+  AdminSessionStore,
+  parseCookies,
+  serializeSessionCookie,
+} from "./lib/admin-session.mjs";
 import { KomariClient, KomariError } from "./lib/komari-client.mjs";
 import { AgentRegistry } from "./lib/agent-registry.mjs";
 import { ProbeRateLimiter, ProbeValidationError, normalizeProbePayload } from "./lib/probe-ingest.mjs";
 import { ProbeStore } from "./lib/probe-store.mjs";
 import { isDiagnosticApiPath, validateDashboardAuthConfig } from "./lib/security-policy.mjs";
 import { TopologyConfigStore } from "./lib/topology-config-store.mjs";
-import { sanitizeBranding } from "./lib/topology-config.mjs";
+import { sanitizeBranding, sanitizeSiteSettings } from "./lib/topology-config.mjs";
 import {
   buildDemoDashboard,
   buildLiveDashboard,
@@ -25,6 +31,7 @@ const configPath = resolve(rootDir, process.env.TOPOLOGY_CONFIG_PATH || "config/
 const agentConfigPath = resolve(rootDir, process.env.AGENT_CONFIG_PATH || "config/agents.json");
 const agentBackupPath = resolve(rootDir, process.env.AGENT_BACKUP_PATH || "data/agents.backup.json");
 const probeDatabasePath = resolve(rootDir, process.env.PROBE_DB_PATH || "data/probes.db");
+const faviconPath = resolve(rootDir, process.env.SITE_FAVICON_PATH || "data/favicon");
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 const cacheTtlMs = Math.max(1, Number(process.env.CACHE_TTL_SECONDS || 8)) * 1000;
@@ -32,6 +39,8 @@ const basicUser = process.env.DASHBOARD_USER || "";
 const basicPassword = process.env.DASHBOARD_PASSWORD || "";
 const maxIngestBodyBytes = Math.max(1024, Number(process.env.MAX_INGEST_BODY_BYTES || 32_768));
 const maxEditorBodyBytes = Math.max(16_384, Number(process.env.MAX_EDITOR_BODY_BYTES || 131_072));
+const maxFaviconBytes = Math.min(5 * 1024 * 1024, Math.max(16_384, Number(process.env.MAX_FAVICON_BYTES || 2 * 1024 * 1024)));
+const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TTL_SECONDS || 604_800));
 const diagnosticApiEnabled = envFlag("ENABLE_DIAGNOSTIC_API");
 const allowUnauthenticatedDashboard = envFlag("ALLOW_UNAUTHENTICATED_DASHBOARD");
 
@@ -52,14 +61,14 @@ const basicAuthConfigured = validateDashboardAuthConfig({
 if (!basicAuthConfigured) {
   console.warn(
     demoMode
-      ? "Dashboard Basic Auth is disabled in demo mode."
-      : "Dashboard Basic Auth is disabled by explicit ALLOW_UNAUTHENTICATED_DASHBOARD override.",
+      ? "Admin login is disabled in demo mode because no credentials are configured."
+      : "Admin login is disabled by the explicit ALLOW_UNAUTHENTICATED_DASHBOARD override.",
   );
 }
-const topologyEditorRequested = envFlag("ENABLE_TOPOLOGY_EDITOR");
+const topologyEditorRequested = envFlag("ENABLE_TOPOLOGY_EDITOR", true);
 const topologyEditorEnabled = topologyEditorRequested && basicAuthConfigured;
 if (topologyEditorRequested && !topologyEditorEnabled) {
-  console.warn("Topology editor was disabled because dashboard Basic Auth is not configured.");
+  console.warn("Topology editor was disabled because admin credentials are not configured.");
 }
 
 const probeStore = new ProbeStore({
@@ -74,7 +83,12 @@ const ingestRateLimiter = new ProbeRateLimiter({
 const enrollmentRateLimiter = new ProbeRateLimiter({
   limit: Number(process.env.ENROLL_RATE_LIMIT_PER_MINUTE || 20),
 });
-const editorCsrfToken = randomBytes(32).toString("base64url");
+const adminLoginRateLimiter = new ProbeRateLimiter({
+  limit: Number(process.env.ADMIN_LOGIN_RATE_LIMIT_PER_5_MINUTES || 10),
+  windowMs: 5 * 60_000,
+});
+const adminSessions = new AdminSessionStore({ ttlMs: adminSessionTtlSeconds * 1000 });
+const basicCsrfToken = randomBytes(32).toString("base64url");
 
 // Create the redundant registry copy before serving requests. If an upgrade
 // accidentally drops config/agents.json while data/ survives, reload restores
@@ -112,14 +126,10 @@ function secureEqual(left, right) {
   return timingSafeEqual(a, b);
 }
 
-function requireBasicAuth(request, response) {
-  if (!basicAuthConfigured) return true;
-  const header = request.headers.authorization || "";
-  if (!header.startsWith("Basic ")) {
-    response.writeHead(401, { "WWW-Authenticate": 'Basic realm="TopoMari"' });
-    response.end("Authentication required");
-    return false;
-  }
+function validBasicCredentials(request) {
+  if (!basicAuthConfigured) return false;
+  const header = String(request.headers.authorization || "");
+  if (!header.startsWith("Basic ")) return false;
   let credentials = "";
   try {
     credentials = Buffer.from(header.slice(6), "base64").toString("utf8");
@@ -129,12 +139,39 @@ function requireBasicAuth(request, response) {
   const separatorIndex = credentials.indexOf(":");
   const user = separatorIndex >= 0 ? credentials.slice(0, separatorIndex) : credentials;
   const password = separatorIndex >= 0 ? credentials.slice(separatorIndex + 1) : "";
-  if (!secureEqual(user, basicUser) || !secureEqual(password, basicPassword)) {
-    response.writeHead(401, { "WWW-Authenticate": 'Basic realm="TopoMari"' });
-    response.end("Invalid credentials");
-    return false;
+  return secureEqual(user, basicUser) && secureEqual(password, basicPassword);
+}
+
+function requestSessionToken(request) {
+  return parseCookies(request.headers.cookie).get(ADMIN_SESSION_COOKIE) || "";
+}
+
+function adminPrincipal(request) {
+  const session = adminSessions.get(requestSessionToken(request));
+  if (session) return { ...session, type: "session" };
+  if (validBasicCredentials(request)) {
+    return { username: basicUser, csrfToken: basicCsrfToken, type: "basic" };
   }
-  return true;
+  return null;
+}
+
+function requireAdmin(request, response) {
+  const principal = adminPrincipal(request);
+  if (principal) return principal;
+  json(response, 401, { error: "Admin authentication required" });
+  return null;
+}
+
+function requestIsSecure(request) {
+  const forwarded = String(request.headers["x-forwarded-proto"] || "").split(",")[0].trim().toLowerCase();
+  return forwarded === "https" || request.socket.encrypted === true;
+}
+
+function sessionCookie(token, request, maximumAgeSeconds = adminSessionTtlSeconds) {
+  return serializeSessionCookie(token, {
+    maximumAgeSeconds,
+    secure: requestIsSecure(request),
+  });
 }
 
 function json(response, statusCode, value, extraHeaders = {}) {
@@ -180,9 +217,9 @@ function requireJsonContent(request, response) {
   return false;
 }
 
-function requireEditorCsrf(request, response) {
+function requireEditorCsrf(request, response, principal) {
   const presented = String(request.headers["x-topology-csrf"] || "");
-  if (presented && secureEqual(presented, editorCsrfToken)) return true;
+  if (presented && principal?.csrfToken && secureEqual(presented, principal.csrfToken)) return true;
   json(response, 403, { error: "Invalid or missing topology editor CSRF token" });
   return false;
 }
@@ -204,7 +241,7 @@ async function editorInventory() {
   return { nodes, tasks };
 }
 
-async function handleEditorApi(request, response, url) {
+async function handleEditorApi(request, response, url, principal) {
   if (!topologyEditorEnabled) return json(response, 404, { error: "Topology editor is disabled" });
 
   if (url.pathname === "/api/editor/bootstrap") {
@@ -216,7 +253,7 @@ async function handleEditorApi(request, response, url) {
     ]);
     return json(response, 200, {
       enabled: true,
-      csrfToken: editorCsrfToken,
+      csrfToken: principal.csrfToken,
       revision,
       config,
       nodes: inventory.nodes,
@@ -233,7 +270,7 @@ async function handleEditorApi(request, response, url) {
     return json(response, 200, { ...branding, revision });
   }
 
-  if (!requireEditorCsrf(request, response)) return;
+  if (!requireEditorCsrf(request, response, principal)) return;
   if (!requireJsonContent(request, response)) return;
 
   if (url.pathname === "/api/editor/branding") {
@@ -341,7 +378,214 @@ async function handleEnroll(request, response) {
   });
 }
 
+async function handleAuthApi(request, response, url) {
+  if (url.pathname === "/api/auth/session") {
+    if (request.method !== "GET") return methodNotAllowed(response, ["GET"]);
+    const principal = adminPrincipal(request);
+    return json(response, 200, {
+      authenticated: Boolean(principal),
+      username: principal?.username || "",
+      editorEnabled: topologyEditorEnabled,
+      csrfToken: principal?.csrfToken || "",
+    });
+  }
+
+  if (url.pathname === "/api/auth/login") {
+    if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
+    if (!basicAuthConfigured) {
+      return json(response, 503, { error: "Admin credentials are not configured" });
+    }
+    if (!requireJsonContent(request, response)) return;
+    const remote = String(request.socket.remoteAddress || "unknown");
+    if (!adminLoginRateLimiter.allow(remote)) {
+      return json(response, 429, { error: "Too many login attempts" }, { "Retry-After": "300" });
+    }
+    const body = await readJsonBody(request, 16_384);
+    const username = String(body.username || "");
+    const password = String(body.password || "");
+    const usernameMatches = secureEqual(username, basicUser);
+    const passwordMatches = secureEqual(password, basicPassword);
+    if (!usernameMatches || !passwordMatches) {
+      return json(response, 401, { error: "Invalid username or password" });
+    }
+    const session = adminSessions.create(basicUser);
+    return json(response, 200, {
+      authenticated: true,
+      username: session.username,
+      editorEnabled: topologyEditorEnabled,
+      csrfToken: session.csrfToken,
+      expiresAt: new Date(session.expiresAt).toISOString(),
+    }, { "Set-Cookie": sessionCookie(session.token, request) });
+  }
+
+  if (url.pathname === "/api/auth/logout") {
+    if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
+    const principal = requireAdmin(request, response);
+    if (!principal) return;
+    if (!requireEditorCsrf(request, response, principal)) return;
+    adminSessions.delete(requestSessionToken(request));
+    return json(response, 200, { authenticated: false }, {
+      "Set-Cookie": sessionCookie("", request, 0),
+    });
+  }
+
+  return json(response, 404, { error: "Authentication route not found" });
+}
+
+async function faviconState() {
+  try {
+    const info = await stat(faviconPath);
+    return { customFavicon: info.isFile(), faviconVersion: Math.round(info.mtimeMs) };
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+    return { customFavicon: false, faviconVersion: 0 };
+  }
+}
+
+async function siteSettingsPayload({ csrfToken = "" } = {}) {
+  const { config, revision } = await topologyConfigStore.read();
+  return {
+    ...sanitizeSiteSettings(config),
+    ...await faviconState(),
+    faviconUrl: "/favicon",
+    revision,
+    csrfToken,
+  };
+}
+
+async function publicSiteSettingsPayload() {
+  const site = await siteSettingsPayload();
+  return {
+    siteName: site.siteName,
+    description: site.description,
+    autoThemeBeijing: site.autoThemeBeijing,
+    customFavicon: site.customFavicon,
+    faviconVersion: site.faviconVersion,
+    faviconUrl: site.faviconUrl,
+  };
+}
+
+function faviconMime(body) {
+  if (body.length >= 8 && body.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return "image/png";
+  }
+  if (body.length >= 4 && body[0] === 0 && body[1] === 0 && body[2] === 1 && body[3] === 0) {
+    return "image/x-icon";
+  }
+  return "";
+}
+
+async function readBinaryBody(request, maximumBytes) {
+  return await new Promise((resolveBody, rejectBody) => {
+    const chunks = [];
+    let size = 0;
+    let tooLarge = false;
+    request.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > maximumBytes) {
+        tooLarge = true;
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("end", () => {
+      if (tooLarge) return rejectBody(new ProbeValidationError("Favicon is too large", 413));
+      resolveBody(Buffer.concat(chunks));
+    });
+    request.on("error", rejectBody);
+  });
+}
+
+async function writeFavicon(body) {
+  const temporary = `${faviconPath}.${randomBytes(6).toString("hex")}.tmp`;
+  await mkdir(dirname(faviconPath), { recursive: true });
+  await writeFile(temporary, body, { mode: 0o640 });
+  await rename(temporary, faviconPath);
+}
+
+async function handleAdminApi(request, response, url, principal) {
+  if (url.pathname === "/api/admin/site" && request.method === "GET") {
+    return json(response, 200, await siteSettingsPayload({ csrfToken: principal.csrfToken }));
+  }
+
+  if (url.pathname === "/api/admin/site") {
+    if (request.method !== "PUT") return methodNotAllowed(response, ["GET", "PUT"]);
+    if (!requireEditorCsrf(request, response, principal)) return;
+    if (!requireJsonContent(request, response)) return;
+    const body = await readJsonBody(request, maxEditorBodyBytes);
+    const current = await topologyConfigStore.read();
+    const site = sanitizeSiteSettings(body);
+    const result = await topologyConfigStore.write({
+      ...current.config,
+      site_name: site.siteName,
+      title: site.siteName,
+      description: site.description,
+      auto_theme_beijing: site.autoThemeBeijing,
+    }, String(body.revision || ""));
+    dashboardCache = { expiresAt: 0, value: null, promise: null };
+    return json(response, 200, {
+      ...site,
+      ...await faviconState(),
+      faviconUrl: "/favicon",
+      revision: result.revision,
+      csrfToken: principal.csrfToken,
+    });
+  }
+
+  if (url.pathname === "/api/admin/site/favicon") {
+    if (request.method !== "PUT" && request.method !== "DELETE") {
+      return methodNotAllowed(response, ["PUT", "DELETE"]);
+    }
+    if (!requireEditorCsrf(request, response, principal)) return;
+    if (request.method === "DELETE") {
+      try {
+        await unlink(faviconPath);
+      } catch (error) {
+        if (error?.code !== "ENOENT") throw error;
+      }
+      return json(response, 200, await siteSettingsPayload({ csrfToken: principal.csrfToken }));
+    }
+    const body = await readBinaryBody(request, maxFaviconBytes);
+    if (!body.length) return json(response, 400, { error: "Favicon file is empty" });
+    const mime = faviconMime(body);
+    if (!mime) return json(response, 415, { error: "Favicon must be a PNG or ICO file" });
+    await writeFavicon(body);
+    return json(response, 200, {
+      ...await siteSettingsPayload({ csrfToken: principal.csrfToken }),
+      mime,
+    });
+  }
+
+  return json(response, 404, { error: "Admin API route not found" });
+}
+
+async function serveFavicon(response) {
+  let body;
+  let mime;
+  try {
+    body = await readFile(faviconPath);
+    mime = faviconMime(body);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (!body || !mime) {
+    body = await readFile(join(publicDir, "favicon.png"));
+    mime = "image/png";
+  }
+  response.writeHead(200, {
+    "Content-Type": mime,
+    "Content-Length": body.length,
+    "Cache-Control": "no-cache",
+    "X-Content-Type-Options": "nosniff",
+  });
+  response.end(body);
+}
+
 async function handleApi(request, response, url) {
+  if (url.pathname.startsWith("/api/auth/")) {
+    return await handleAuthApi(request, response, url);
+  }
+
   if (url.pathname === "/api/health") {
     if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
     return json(response, 200, {
@@ -354,42 +598,18 @@ async function handleApi(request, response, url) {
     });
   }
 
-  if (!requireBasicAuth(request, response)) return;
-
-  if (url.pathname.startsWith("/api/editor/")) {
-    return await handleEditorApi(request, response, url);
-  }
-
-  if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
-
-  if (isDiagnosticApiPath(url.pathname) && !diagnosticApiEnabled) {
-    return json(response, 404, { error: "API route not found" });
+  if (url.pathname === "/api/site") {
+    if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
+    return json(response, 200, await publicSiteSettingsPayload());
   }
 
   if (url.pathname === "/api/dashboard") {
-    const dashboard = await getDashboard();
-    return json(response, 200, dashboard);
-  }
-
-  if (url.pathname === "/api/nodes") {
-    if (demoMode) return json(response, 200, (await getDashboard()).nodes);
-    return json(response, 200, normalizeNodeList(await client.getNodes()));
-  }
-
-  if (url.pathname === "/api/ping-tasks") {
-    if (demoMode) return json(response, 200, (await getDashboard()).tasks);
-    return json(response, 200, normalizePingTasks(await client.getPingTasks()));
-  }
-
-  if (url.pathname === "/api/probes") {
-    return json(response, 200, {
-      agents: await agentRegistry.list(),
-      edges: probeStore.getOverview(),
-      registry: await agentRegistry.status(),
-    });
+    if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
+    return json(response, 200, await getDashboard());
   }
 
   if (url.pathname === "/api/edge-stats") {
+    if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
     const probeId = url.searchParams.get("probe_id") || "";
     const hours = Math.min(168, Math.max(1, Number(url.searchParams.get("hours") || 1)));
     if (probeId) {
@@ -418,6 +638,41 @@ async function handleApi(request, response, url) {
         return sourceUuid === uuid && (Number(item.task_id) === taskId || taskIds.includes(taskId));
       });
     return json(response, 200, computeEdgeStats(payload, taskId, edge?.health_thresholds));
+  }
+
+  const principal = requireAdmin(request, response);
+  if (!principal) return;
+
+  if (url.pathname.startsWith("/api/admin/")) {
+    return await handleAdminApi(request, response, url, principal);
+  }
+
+  if (url.pathname.startsWith("/api/editor/")) {
+    return await handleEditorApi(request, response, url, principal);
+  }
+
+  if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
+
+  if (isDiagnosticApiPath(url.pathname) && !diagnosticApiEnabled) {
+    return json(response, 404, { error: "API route not found" });
+  }
+
+  if (url.pathname === "/api/nodes") {
+    if (demoMode) return json(response, 200, (await getDashboard()).nodes);
+    return json(response, 200, normalizeNodeList(await client.getNodes()));
+  }
+
+  if (url.pathname === "/api/ping-tasks") {
+    if (demoMode) return json(response, 200, (await getDashboard()).tasks);
+    return json(response, 200, normalizePingTasks(await client.getPingTasks()));
+  }
+
+  if (url.pathname === "/api/probes") {
+    return json(response, 200, {
+      agents: await agentRegistry.list(),
+      edges: probeStore.getOverview(),
+      registry: await agentRegistry.status(),
+    });
   }
 
   return json(response, 404, { error: "API route not found" });
@@ -527,12 +782,12 @@ const server = createServer(async (request, response) => {
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
     if (url.pathname === "/api/ingest") return await handleIngest(request, response);
     if (url.pathname === "/api/enroll") return await handleEnroll(request, response);
+    if (url.pathname === "/favicon" || url.pathname === "/favicon.ico") return await serveFavicon(response);
     if (url.pathname.startsWith("/api/")) {
       return await handleApi(request, response, url);
     }
     if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed(response, ["GET"]);
     if (url.pathname.startsWith("/agent/")) return await serveStatic(response, url.pathname);
-    if (!requireBasicAuth(request, response)) return;
     return await serveStatic(response, url.pathname);
   } catch (error) {
     const status = Number(error?.status) || (error instanceof KomariError ? error.status : 500);

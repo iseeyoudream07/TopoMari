@@ -2,9 +2,9 @@ const JSON_HEADERS = Object.freeze({ Accept: "application/json" });
 
 export async function requestJson(path, { method = "GET", body, csrfToken } = {}) {
   const headers = { ...JSON_HEADERS };
+  if (csrfToken) headers["X-Topology-CSRF"] = csrfToken;
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
-    if (csrfToken) headers["X-Topology-CSRF"] = csrfToken;
   }
 
   const response = await fetch(path, {
@@ -12,6 +12,7 @@ export async function requestJson(path, { method = "GET", body, csrfToken } = {}
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
+    credentials: "same-origin",
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -25,6 +26,70 @@ export async function requestJson(path, { method = "GET", body, csrfToken } = {}
 export const dashboardApi = Object.freeze({
   snapshot() {
     return requestJson(`/api/dashboard?t=${Date.now()}`);
+  },
+  site() {
+    return requestJson(`/api/site?t=${Date.now()}`);
+  },
+});
+
+export const authApi = Object.freeze({
+  session() {
+    return requestJson(`/api/auth/session?t=${Date.now()}`);
+  },
+  login(username, password) {
+    return requestJson("/api/auth/login", {
+      method: "POST",
+      body: { username, password },
+    });
+  },
+  logout(csrfToken) {
+    return requestJson("/api/auth/logout", {
+      method: "POST",
+      body: {},
+      csrfToken,
+    });
+  },
+});
+
+async function requestFavicon(file, csrfToken) {
+  const response = await fetch("/api/admin/site/favicon", {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-Topology-CSRF": csrfToken,
+    },
+    body: file,
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+export const adminApi = Object.freeze({
+  site() {
+    return requestJson(`/api/admin/site?t=${Date.now()}`);
+  },
+  saveSite(siteName, description, autoThemeBeijing, revision, csrfToken) {
+    return requestJson("/api/admin/site", {
+      method: "PUT",
+      body: { siteName, description, autoThemeBeijing, revision },
+      csrfToken,
+    });
+  },
+  uploadFavicon(file, csrfToken) {
+    return requestFavicon(file, csrfToken);
+  },
+  deleteFavicon(csrfToken) {
+    return requestJson("/api/admin/site/favicon", {
+      method: "DELETE",
+      csrfToken,
+    });
   },
 });
 

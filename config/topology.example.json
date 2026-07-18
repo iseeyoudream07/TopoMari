@@ -1,6 +1,8 @@
 {
   "site_name": "TopoMari",
   "title": "TopoMari",
+  "description": "Multi-hop latency and packet-loss visibility",
+  "auto_theme_beijing": false,
   "subtitle": "Example multi-hop latency and packet-loss dashboard",
   "refresh_interval_seconds": 15,
   "history_hours": 1,

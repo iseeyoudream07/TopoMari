@@ -14,11 +14,12 @@ TopoMari 是一个可以部署在自己服务器上的 Komari 链路拓扑面板
 - 读取 Komari 节点与 Ping 任务，估算用户到中转机的延迟。
 - 在中转机、落地机上安装轻量探针，测量两台服务器之间的真实 TCP 延迟。
 - 记录最近一段时间的延迟与丢包，方便发现线路波动。
-- 直接在网页里添加、修改和删除链路。
-- 支持简体中文 / English、日间 / 夜间模式和手机页面。
+- 在独立后台中添加、修改和删除链路，并管理私有探针。
+- 在“设置 → 站点”中修改站点名称、描述和 PNG / ICO Favicon。
+- 支持简体中文 / English、日间 / 夜间模式、北京时间日出日落自动主题和手机页面。
 - 更新面板时自动备份配置、探针身份和历史数据。
 
-页面默认的网站名称和主标题都是 `TopoMari`。后端已预留品牌设置接口：读取使用 `GET /api/editor/branding`，修改使用 `PUT /api/editor/branding`；写入需要启用链路编辑器，并携带 Basic Auth、编辑器 CSRF Token 和当前配置 `revision`。请求体字段为 `siteName`、`mainTitle`、`revision`，以后可以直接接入设置页面。
+公开面板位于 `/`，打开后不会要求登录。点击右上角齿轮或直接访问 `/admin` 才会进入登录页；登录后可以使用“链路管理”和“设置 → 站点”。管理员会话使用 HttpOnly Cookie，站点配置写入 `config/topology.json`，自定义 Favicon 写入持久化的 `data/favicon`。
 
 一条常见线路大致是：
 
@@ -92,8 +93,8 @@ ENABLE_TOPOLOGY_EDITOR=true
 - 只想先看演示页面：把 `KOMARI_BASE_URL` 留空，并设置 `DEMO_MODE=true`。
 - 使用真实 Komari：填写 `KOMARI_BASE_URL`，并设置 `DEMO_MODE=false`。
 - Komari 需要登录时：继续填写 `.env` 里的 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。
-- `DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 是 TopoMari 自己的登录账号，不是 Komari 账号。
-- 网页里的“管理链路”只有在账号密码和 `ENABLE_TOPOLOGY_EDITOR=true` 都已配置时才会出现。
+- `DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 是 TopoMari 后台账号，不是 Komari 账号；公开面板不使用这组账号。
+- “链路管理”只有在账号密码和 `ENABLE_TOPOLOGY_EDITOR=true` 都已配置时才可使用。
 
 可以用下面的命令生成随机密码：
 
@@ -157,7 +158,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-现在打开 `https://topology.example.com`，输入 `.env` 中设置的 TopoMari 账号和密码即可。
+现在打开 `https://topology.example.com` 会直接显示公开面板。需要修改配置时，点击右上角齿轮进入后台，再输入 `.env` 中设置的 TopoMari 账号和密码。
 
 > 建议完成 HTTPS 后再安装私有探针，避免探针 Token 通过明文 HTTP 传输。
 
@@ -165,7 +166,7 @@ sudo systemctl reload nginx
 
 ### 添加真实链路
 
-登录面板后点击“管理链路”：
+点击公开面板右上角齿轮，登录后台后进入“链路管理”：
 
 1. 点击“新链路”，填写一个容易识别的名称。
 2. 选择 Komari 中的中转节点和落地节点。
@@ -199,7 +200,7 @@ Private probe installed and reporting
 - 链路拓扑：快速判断是哪一段变慢或断开。
 - 链路健康：查看最新延迟、平均延迟、丢包和变化趋势。
 - 受监测节点：确认 Komari 节点是否在线。
-- 管理链路：修改线路、部署探针、启用或停用探针。
+- 后台管理：点击右上角齿轮后登录，可修改线路、部署探针、启停探针和编辑站点设置。
 
 状态含义：
 
@@ -273,7 +274,7 @@ sudo docker compose up -d
 
 ## 常见问题
 
-### 页面能打开，但没有“管理链路”
+### 进入后台后没有“链路管理”
 
 检查 `.env` 是否同时设置了 `DASHBOARD_USER`、`DASHBOARD_PASSWORD` 和 `ENABLE_TOPOLOGY_EDITOR=true`，然后运行：
 

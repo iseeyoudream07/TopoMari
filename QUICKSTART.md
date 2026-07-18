@@ -44,6 +44,8 @@ ENABLE_TOPOLOGY_EDITOR=true
 
 如果 Komari 需要登录态，再填写 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。这些值只能存在于服务器 `.env` 中。
 
+公开面板 `/` 不要求登录。`DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 只用于 `/admin` 后台；后台包含“链路管理”和“设置 → 站点”，站点设置可以修改名称、描述、自定义 Favicon，以及启用北京时间日出日落自动主题。
+
 只想先查看演示页面时，保持 `KOMARI_BASE_URL` 为空并使用 `DEMO_MODE=true`。
 
 ## 3. 启动容器
@@ -108,7 +110,7 @@ sudo certbot renew --dry-run
 
 ## 6. 替换示例拓扑
 
-登录 `https://topology.example.com`，点击“管理链路”：
+打开 `https://topology.example.com` 后点击右上角齿轮，登录 `/admin` 并进入“链路管理”：
 
 1. 新建 route。
 2. 从 Komari 节点列表选择真实的中转和出口节点。
@@ -176,7 +178,7 @@ sudo bash scripts/update-dashboard.sh
 sudo docker compose ps
 sudo docker compose logs --tail=100 komari-topology
 curl -fsS http://127.0.0.1:3000/api/health
-curl -fsS -u 'your-user:your-password' http://127.0.0.1:3000/api/dashboard >/dev/null
+curl -fsS http://127.0.0.1:3000/api/dashboard >/dev/null
 ```
 
 `/api/health` 应包含 `"agentRegistryProtection":"mirrored"`。

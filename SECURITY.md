@@ -9,7 +9,7 @@
 请使用 [GitHub Private Vulnerability Reporting](https://github.com/iseeyoudream07/TopoMari/security/advisories/new) 私下报告安全问题。不要在公开 Issue、日志或截图中粘贴以下内容：
 
 - Komari Cookie 或 Authorization
-- Dashboard 密码
+- TopoMari 后台密码或管理员会话 Cookie
 - Agent Token 或 enrollment code
 - `config/agents.json`
 - `.env`

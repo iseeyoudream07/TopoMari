@@ -7,10 +7,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentRegistry } from "../lib/agent-registry.mjs";
 import { ProbeStore } from "../lib/probe-store.mjs";
-import { sanitizeBranding, sanitizeTopologyConfig } from "../lib/topology-config.mjs";
+import { sanitizeBranding, sanitizeSiteSettings, sanitizeTopologyConfig } from "../lib/topology-config.mjs";
 import { TopologyConfigStore, TopologyRevisionConflict } from "../lib/topology-config-store.mjs";
 
-const indexUrl = new URL("../public/index.html", import.meta.url);
+const adminIndexUrl = new URL("../public/admin/index.html", import.meta.url);
 const editorUrl = new URL("../public/editor.js", import.meta.url);
 const stylesUrl = new URL("../public/styles.css", import.meta.url);
 const installerUrl = new URL("../public/agent/install.sh", import.meta.url);
@@ -23,6 +23,8 @@ function sampleConfig() {
   return {
     site_name: "TopoMari site",
     title: "Editor test",
+    description: "A private topology overview",
+    auto_theme_beijing: true,
     subtitle: "Safe config",
     refresh_interval_seconds: 15,
     history_hours: 1,
@@ -69,6 +71,25 @@ test("topology editor whitelist removes target addresses and arbitrary secrets",
   assert.equal(serialized.includes("must-not-survive"), false);
   assert.equal(normalized.routes[0].edges[1].agent_id, "relay-agent");
   assert.equal(normalized.site_name, "TopoMari site");
+  assert.equal(normalized.description, "A private topology overview");
+  assert.equal(normalized.auto_theme_beijing, true);
+});
+
+test("site settings sanitize the public metadata and Beijing theme option", () => {
+  assert.deepEqual(sanitizeSiteSettings({}), {
+    siteName: "TopoMari",
+    description: "Multi-hop latency and packet-loss visibility",
+    autoThemeBeijing: false,
+  });
+  assert.deepEqual(sanitizeSiteSettings({
+    site_name: "  My site  ",
+    description: "  My description  ",
+    auto_theme_beijing: true,
+  }), {
+    siteName: "My site",
+    description: "My description",
+    autoThemeBeijing: true,
+  });
 });
 
 test("branding keeps separate safe defaults for the browser title and page heading", () => {
@@ -85,14 +106,16 @@ test("branding keeps separate safe defaults for the browser title and page headi
 
 test("editor bindings point to unique elements in the shipped page", async () => {
   const [html, script] = await Promise.all([
-    readFile(indexUrl, "utf8"),
+    readFile(adminIndexUrl, "utf8"),
     readFile(editorUrl, "utf8"),
   ]);
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(new Set(ids).size, ids.length, "HTML ids must be unique");
   const referenced = [...script.matchAll(/getElementById\("([^"]+)"\)/g)].map((match) => match[1]);
-  assert.deepEqual(referenced.filter((id) => !ids.includes(id)), []);
-  assert.match(html, /aria-controls="topology-manager"/);
+  const optionalStandaloneControls = new Set(["manager-toggle", "manager-close"]);
+  assert.deepEqual(referenced.filter((id) => !ids.includes(id) && !optionalStandaloneControls.has(id)), []);
+  assert.match(html, /id="topology-manager"/);
+  assert.match(html, /data-admin-panel="routes"/);
 });
 
 test("route library constrains long names to its grid column", async () => {
