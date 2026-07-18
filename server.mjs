@@ -584,11 +584,14 @@ async function handleAdminApi(request, response, url, principal) {
     if (!requireJsonContent(request, response)) return;
     const body = await readJsonBody(request, maxEditorBodyBytes);
     const current = await topologyConfigStore.read();
-    const mergedThemeSettings = {
-      ...(current.config.theme_settings || {}),
-      ...(body.theme_settings || {}),
-      ...(body.themeSettings || {}),
-    };
+    const requestedVisualTheme = sanitizeSiteSettings({ ...current.config, ...body }).visualTheme;
+    const mergedThemeSettings = requestedVisualTheme === "glassmorphism"
+      ? {
+          ...(current.config.theme_settings || {}),
+          ...(body.theme_settings || {}),
+          ...(body.themeSettings || {}),
+        }
+      : { ...(current.config.theme_settings || {}) };
     const site = sanitizeSiteSettings({
       ...current.config,
       ...body,
@@ -680,6 +683,10 @@ async function handleAdminApi(request, response, url, principal) {
       return methodNotAllowed(response, ["PUT", "DELETE"]);
     }
     if (!requireEditorCsrf(request, response, principal)) return;
+    const currentSite = await topologyConfigStore.read();
+    if (sanitizeSiteSettings(currentSite.config).visualTheme !== "glassmorphism") {
+      return json(response, 409, { error: "Theme backgrounds are available only while Glassmorphism is active" });
+    }
     const mode = backgroundMatch[1];
     if (request.method === "DELETE") {
       await removeThemeBackground(mode);

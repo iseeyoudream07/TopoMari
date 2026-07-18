@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.8.1 - 2026-07-19
+
+- Rebuilt the dashboard overview as a compact six-metric cockpit with a lightweight header and responsive Glassmorphism cards.
+- Added a dependency-free animated globe that maps topology routes, geographic node hints, health-colored arcs, and moving transfer packets.
+- Made custom backgrounds and glass-surface controls exclusive to Glassmorphism while preserving their saved values when the original theme is active.
+
 ## 2.8.0 - 2026-07-18
 
 - Extended Glassmorphism across the public dashboard and added a top-level Theme Settings page for light/dark image or video backgrounds, blur, overlay, glass opacity, borders, and corners.

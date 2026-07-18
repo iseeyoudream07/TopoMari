@@ -1,6 +1,7 @@
 import { dashboardApi } from "./frontend/api-client.js";
 import { getLocale, t } from "./frontend/i18n.js";
 import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
+import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.1-globe-overview";
 import { applySiteTheme } from "./frontend/site-theme.js";
 import { applyThemeSettings } from "./frontend/theme-background.js";
 import { renderSparkline } from "./sparkline.js";
@@ -20,15 +21,23 @@ const elements = {
   statRoutes: document.getElementById("stat-routes"),
   statEdges: document.getElementById("stat-edges"),
   statNodes: document.getElementById("stat-nodes"),
-  statNodeContext: document.getElementById("stat-node-context"),
   statLatency: document.getElementById("stat-latency"),
   statLoss: document.getElementById("stat-loss"),
+  statAlerts: document.getElementById("stat-alerts"),
+  globeCanvas: document.getElementById("route-globe-canvas"),
+  globeNodeCount: document.getElementById("route-globe-node-count"),
+  globeLinkCount: document.getElementById("route-globe-link-count"),
 };
 
 let refreshTimer = null;
 let loading = false;
 let lastDashboard = null;
 let lastError = null;
+
+const routeGlobe = createRouteGlobe(elements.globeCanvas, {
+  countElement: elements.globeLinkCount,
+  nodeCountElement: elements.globeNodeCount,
+});
 
 const knownStatuses = new Set(["healthy", "warning", "degraded", "failed", "unconfigured", "unknown"]);
 
@@ -237,15 +246,20 @@ function renderNodes(nodes) {
     .join("");
 }
 
-function renderSummary(summary) {
+function renderSummary(summary, routes) {
+  const alertStatuses = new Set(["warning", "degraded", "failed"]);
+  const alertCount = flattenEdges(routes).filter((edge) => alertStatuses.has(edge.stats?.status)).length;
   elements.statRoutes.textContent = formatNumber(summary.routes);
-  elements.statEdges.textContent = t("stats.measuredEdges", { count: formatNumber(summary.edges) });
+  elements.statEdges.textContent = formatNumber(summary.edges);
   elements.statNodes.textContent = `${formatNumber(summary.onlineNodes)} / ${formatNumber(summary.nodes)}`;
-  elements.statNodeContext.textContent = summary.onlineNodes === summary.nodes
-    ? t("stats.allNodesOnline")
-    : t("stats.nodesOffline", { count: summary.nodes - summary.onlineNodes });
-  elements.statLatency.textContent = formatLatency(summary.averageLatency);
-  elements.statLoss.textContent = formatLoss(summary.averageLoss);
+  elements.statLatency.textContent = summary.averageLatency === null || summary.averageLatency === undefined
+    ? "—"
+    : formatNumber(summary.averageLatency, summary.averageLatency < 10 && summary.averageLatency % 1 ? 1 : 0);
+  elements.statLoss.textContent = summary.averageLoss === null || summary.averageLoss === undefined
+    ? "—"
+    : formatNumber(summary.averageLoss, summary.averageLoss % 1 ? 1 : 0);
+  elements.statAlerts.textContent = formatNumber(alertCount);
+  elements.statAlerts.closest(".stat-card")?.toggleAttribute("data-has-alerts", alertCount > 0);
 }
 
 function renderDashboard(dashboard) {
@@ -266,7 +280,8 @@ function renderDashboard(dashboard) {
     second: "2-digit",
   }).format(new Date(meta.generatedAt));
   elements.updated.textContent = t("updated.at", { time: updatedTime });
-  renderSummary(summary);
+  renderSummary(summary, routes || []);
+  routeGlobe?.update(routes || []);
   renderRoutes(routes || []);
   renderLinkHealth(routes || []);
   renderNodes(nodes || []);

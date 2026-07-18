@@ -10,6 +10,7 @@ import {
 import {
   normalizeThemeSettings,
   resolveThemeBackgroundSource,
+  supportsThemeDetails,
 } from "../public/frontend/theme-background.js";
 
 const indexUrl = new URL("../public/index.html", import.meta.url);
@@ -25,6 +26,7 @@ const apiUrl = new URL("../public/frontend/api-client.js", import.meta.url);
 const preferenceBootstrapUrl = new URL("../public/frontend/preference-bootstrap.js", import.meta.url);
 const siteThemeUrl = new URL("../public/frontend/site-theme.js", import.meta.url);
 const themeBackgroundUrl = new URL("../public/frontend/theme-background.js", import.meta.url);
+const routeGlobeUrl = new URL("../public/frontend/route-globe.js", import.meta.url);
 const serverUrl = new URL("../server.mjs", import.meta.url);
 
 test("ships persistent Chinese, English, light, and dark preferences", async () => {
@@ -192,6 +194,35 @@ test("normalizes public background and glass controls without unsafe URLs", () =
     cornerRadius: 22,
   });
   assert.equal(resolveThemeBackgroundSource("local:dark", "dark"), "/theme-background/dark");
+  assert.equal(supportsThemeDetails("glassmorphism"), true);
+  assert.equal(supportsThemeDetails("topomari"), false);
+});
+
+test("ships the compact route-globe overview and Glassmorphism-only detail controls", async () => {
+  const [html, app, globe, adminHtml, admin, themeBackground, server] = await Promise.all([
+    readFile(indexUrl, "utf8"),
+    readFile(appUrl, "utf8"),
+    readFile(routeGlobeUrl, "utf8"),
+    readFile(adminIndexUrl, "utf8"),
+    readFile(adminUrl, "utf8"),
+    readFile(themeBackgroundUrl, "utf8"),
+    readFile(serverUrl, "utf8"),
+  ]);
+
+  assert.equal([...html.matchAll(/class="stat-card"/g)].length, 6);
+  assert.match(html, /id="route-globe-canvas"/);
+  assert.match(html, /id="stat-alerts"/);
+  assert.match(app, /createRouteGlobe/);
+  assert.match(app, /routeGlobe\?\.update\(routes \|\| \[\]\)/);
+  assert.match(globe, /buildRouteLinks/);
+  assert.match(globe, /requestAnimationFrame/);
+  assert.doesNotMatch(globe, /\bfetch\s*\(/);
+  assert.match(adminHtml, /id="theme-settings-lock"/);
+  assert.match(adminHtml, /id="theme-settings-controls"/);
+  assert.match(admin, /glassmorphismSettingsActive/);
+  assert.match(admin, /themeSettings\.exclusiveNotice/);
+  assert.match(themeBackground, /supportsThemeDetails\(root\.dataset\.visualTheme\)/);
+  assert.match(server, /Theme backgrounds are available only while Glassmorphism is active/);
 });
 
 test("keeps the public dashboard concise and moves management into the admin page", async () => {

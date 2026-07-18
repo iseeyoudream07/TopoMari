@@ -33,6 +33,13 @@ function safeBackgroundSource(value, mode) {
   }
 }
 
+export function supportsThemeDetails(visualTheme) {
+  const value = typeof visualTheme === "string"
+    ? visualTheme
+    : visualTheme?.visualTheme ?? visualTheme?.visual_theme;
+  return value === "glassmorphism";
+}
+
 export function normalizeThemeSettings(value) {
   const source = value?.themeSettings ?? value?.theme_settings ?? value ?? {};
   const requestedType = String(source.backgroundType ?? source.background_type ?? "image").toLowerCase();
@@ -119,7 +126,8 @@ function syncBackgroundMedia() {
   const mode = root.dataset.theme === "dark" ? "dark" : "light";
   const configuredSource = mode === "dark" ? currentSettings.darkBackground : currentSettings.lightBackground;
   const source = resolveThemeBackgroundSource(configuredSource, mode);
-  const enabled = currentSettings.backgroundEnabled && Boolean(source);
+  const glassmorphismActive = supportsThemeDetails(root.dataset.visualTheme);
+  const enabled = glassmorphismActive && currentSettings.backgroundEnabled && Boolean(source);
   const nextMediaKey = enabled ? `${mode}:${currentSettings.backgroundType}:${source}` : "";
 
   root.dataset.customBackground = String(enabled);
@@ -174,6 +182,14 @@ function syncBackgroundMedia() {
   imageLoader.src = source;
 }
 
+function syncThemeTokens(root) {
+  const applied = supportsThemeDetails(root.dataset.visualTheme) ? currentSettings : DEFAULT_THEME_SETTINGS;
+  root.style.setProperty("--site-glass-blur", `${applied.glassBlur}px`);
+  root.style.setProperty("--site-glass-opacity", `${applied.glassOpacity}%`);
+  root.style.setProperty("--site-glass-border-opacity", `${applied.glassBorder}%`);
+  root.style.setProperty("--site-corner-radius", `${applied.cornerRadius}px`);
+}
+
 function ensureThemeObserver() {
   if (typeof MutationObserver === "undefined" || typeof document === "undefined") return;
   const root = document.documentElement;
@@ -181,9 +197,12 @@ function ensureThemeObserver() {
   themeObserver?.disconnect();
   observedRoot = root;
   themeObserver = new MutationObserver((records) => {
-    if (records.some((record) => record.attributeName === "data-theme")) syncBackgroundMedia();
+    if (records.some((record) => ["data-theme", "data-visual-theme"].includes(record.attributeName))) {
+      syncThemeTokens(root);
+      syncBackgroundMedia();
+    }
   });
-  themeObserver.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  themeObserver.observe(root, { attributes: true, attributeFilter: ["data-theme", "data-visual-theme"] });
 
   const { container, video } = backgroundElements();
   video?.addEventListener("loadeddata", () => {
@@ -198,10 +217,7 @@ export function applyThemeSettings(value) {
   currentSettings = normalizeThemeSettings(value);
   if (typeof document === "undefined") return currentSettings;
   const root = document.documentElement;
-  root.style.setProperty("--site-glass-blur", `${currentSettings.glassBlur}px`);
-  root.style.setProperty("--site-glass-opacity", `${currentSettings.glassOpacity}%`);
-  root.style.setProperty("--site-glass-border-opacity", `${currentSettings.glassBorder}%`);
-  root.style.setProperty("--site-corner-radius", `${currentSettings.cornerRadius}px`);
+  syncThemeTokens(root);
   ensureThemeObserver();
   syncBackgroundMedia();
   return currentSettings;

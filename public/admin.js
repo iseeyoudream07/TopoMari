@@ -44,6 +44,8 @@ const elements = {
   themeSettingsSave: document.getElementById("theme-settings-save"),
   themeSettingsSaveStatus: document.getElementById("theme-settings-save-status"),
   themeSettingsReset: document.getElementById("theme-settings-reset"),
+  themeSettingsLock: document.getElementById("theme-settings-lock"),
+  themeSettingsControls: document.getElementById("theme-settings-controls"),
   backgroundEnabled: document.getElementById("background-enabled"),
   backgroundType: document.getElementById("background-type"),
   backgroundSourceFields: document.getElementById("background-source-fields"),
@@ -197,6 +199,17 @@ function selectedVisualTheme() {
   return document.querySelector('input[name="visual-theme"]:checked')?.value || "topomari";
 }
 
+function glassmorphismSettingsActive(site = siteState) {
+  return normalizeVisualThemeSettings(site || {}).visualTheme === "glassmorphism";
+}
+
+function syncThemeSettingsAvailability(site = siteState) {
+  const locked = !glassmorphismSettingsActive(site);
+  elements.themeSettingsLock.hidden = !locked;
+  elements.themeSettingsControls.disabled = locked;
+  elements.themeSettingsForm.dataset.locked = String(locked);
+}
+
 function setThemeColorInputs(colors) {
   const pairs = [
     [elements.themeLightBackground, colors.lightBackground],
@@ -227,6 +240,7 @@ function generalThemeDraft() {
 function previewGeneralTheme() {
   elements.themeColorFields.hidden = !elements.customThemeColors.checked;
   applySiteTheme(generalThemeDraft());
+  applyThemeSettings(themeSettingsDraft());
 }
 
 function fillGeneralForm(site) {
@@ -346,6 +360,7 @@ function fillSiteForm(site) {
   elements.siteSaveStatus.textContent = "";
   fillGeneralForm(site);
   setThemeSettingsForm(site);
+  syncThemeSettingsAvailability(site);
   updateFaviconStatus();
   updateSiteIdentity(site);
   updateFaviconImages(site.faviconVersion || Date.now());
@@ -494,6 +509,10 @@ elements.themeSettingsReset.addEventListener("click", () => {
 
 async function persistThemeSettings(noticeKey = "themeSettings.saved") {
   if (!siteState) return null;
+  if (!glassmorphismSettingsActive()) {
+    showNotice(t("themeSettings.exclusiveNotice"), "error");
+    return null;
+  }
   elements.themeSettingsSave.disabled = true;
   elements.themeSettingsSaveStatus.textContent = t("site.saving");
   try {
@@ -522,6 +541,10 @@ elements.themeSettingsForm.addEventListener("submit", async (event) => {
 });
 
 async function uploadThemeBackground(mode) {
+  if (!glassmorphismSettingsActive()) {
+    showNotice(t("themeSettings.exclusiveNotice"), "error");
+    return;
+  }
   const controls = themeBackgroundControls(mode);
   const file = controls.file.files?.[0];
   if (!file) {
@@ -553,6 +576,10 @@ async function uploadThemeBackground(mode) {
 }
 
 async function deleteThemeBackground(mode) {
+  if (!glassmorphismSettingsActive()) {
+    showNotice(t("themeSettings.exclusiveNotice"), "error");
+    return;
+  }
   const controls = themeBackgroundControls(mode);
   if (!siteState?.backgroundAssets?.[mode]?.exists || !window.confirm(t("themeSettings.deleteConfirm"))) return;
   controls.delete.disabled = true;

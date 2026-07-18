@@ -136,6 +136,8 @@ test("builds a complete demo dashboard from the shipped topology", async () => {
   assert.equal(dashboard.meta.themeSettings.glassBlur, 18);
   assert.equal(dashboard.routes.length, 2);
   assert.equal(dashboard.summary.edges, 6);
+  assert.equal(dashboard.routes[0].nodes[1].latitude, 35.6762);
+  assert.equal(dashboard.routes[0].nodes[1].longitude, 139.6503);
   assert.ok(dashboard.routes.every((route) => route.edges.length === route.nodes.length - 1));
   assert.ok(dashboard.routes.flatMap((route) => route.edges).every((edge) => edge.stats.history.length > 10));
 });

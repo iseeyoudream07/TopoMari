@@ -35,24 +35,33 @@
           "id": "client",
           "label": "Client network",
           "type": "client",
-          "region": "Reverse latency estimate"
+          "region": "Shanghai, CN",
+          "latitude": 31.2304,
+          "longitude": 121.4737
         },
         {
           "id": "relay-alpha",
           "label": "Relay Alpha",
           "type": "server",
-          "region": "Region A"
+          "region": "Tokyo, JP",
+          "latitude": 35.6762,
+          "longitude": 139.6503
         },
         {
           "id": "exit-alpha",
           "label": "Exit Alpha",
           "type": "server",
-          "region": "Region B"
+          "region": "Singapore, SG",
+          "latitude": 1.3521,
+          "longitude": 103.8198
         },
         {
           "id": "internet",
           "label": "Global Internet",
-          "type": "target"
+          "type": "target",
+          "region": "Los Angeles, US",
+          "latitude": 34.0522,
+          "longitude": -118.2437
         }
       ],
       "edges": [
@@ -96,24 +105,33 @@
           "id": "client",
           "label": "Client network",
           "type": "client",
-          "region": "Reverse latency estimate"
+          "region": "Shanghai, CN",
+          "latitude": 31.2304,
+          "longitude": 121.4737
         },
         {
           "id": "relay-beta",
           "label": "Relay Beta",
           "type": "server",
-          "region": "Region C"
+          "region": "Frankfurt, DE",
+          "latitude": 50.1109,
+          "longitude": 8.6821
         },
         {
           "id": "exit-beta",
           "label": "Exit Beta",
           "type": "server",
-          "region": "Region D"
+          "region": "New York, US",
+          "latitude": 40.7128,
+          "longitude": -74.006
         },
         {
           "id": "internet",
           "label": "Global Internet",
-          "type": "target"
+          "type": "target",
+          "region": "Los Angeles, US",
+          "latitude": 34.0522,
+          "longitude": -118.2437
         }
       ],
       "edges": [
