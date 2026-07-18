@@ -4,14 +4,17 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.8.0 - 2026-07-18
+
+- Extended Glassmorphism across the public dashboard and added a top-level Theme Settings page for light/dark image or video backgrounds, blur, overlay, glass opacity, borders, and corners.
+- Added validated persistent background uploads and a recoverable one-command dashboard uninstaller with runtime and system-configuration backups.
+
 ## 2.7.0 - 2026-07-18
 
 - Simplified the admin login heading and return link copy.
 - Added a Settings > General submenu with a native Glassmorphism preset, live preview, automatic day/night behavior, and validated custom light/dark colors.
 - Persisted visual theme settings in the existing topology configuration and exposed only sanitized palette fields to the public dashboard.
 - Added third-party attribution for the MIT-licensed Komari Glassmorphism palette and glass-surface ideas.
-- Extended Glassmorphism across the public dashboard and added a top-level Theme Settings page for light/dark image or video backgrounds, blur, overlay, glass opacity, borders, and corners.
-- Added validated persistent background uploads and a recoverable one-command dashboard uninstaller with runtime and system-configuration backups.
 
 ## 2.6.0 - 2026-07-18
 
