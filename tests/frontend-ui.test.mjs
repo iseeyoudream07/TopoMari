@@ -7,6 +7,10 @@ import {
   defaultVisualThemeColors,
   normalizeVisualThemeSettings,
 } from "../public/frontend/site-theme.js";
+import {
+  normalizeThemeSettings,
+  resolveThemeBackgroundSource,
+} from "../public/frontend/theme-background.js";
 
 const indexUrl = new URL("../public/index.html", import.meta.url);
 const adminIndexUrl = new URL("../public/admin/index.html", import.meta.url);
@@ -20,6 +24,7 @@ const editorUrl = new URL("../public/editor.js", import.meta.url);
 const apiUrl = new URL("../public/frontend/api-client.js", import.meta.url);
 const preferenceBootstrapUrl = new URL("../public/frontend/preference-bootstrap.js", import.meta.url);
 const siteThemeUrl = new URL("../public/frontend/site-theme.js", import.meta.url);
+const themeBackgroundUrl = new URL("../public/frontend/theme-background.js", import.meta.url);
 const serverUrl = new URL("../server.mjs", import.meta.url);
 
 test("ships persistent Chinese, English, light, and dark preferences", async () => {
@@ -90,7 +95,7 @@ test("uses the circular TopoMari icon and requested interface fonts", async () =
 });
 
 test("keeps TopoMari defaults while allowing admin-controlled site settings", async () => {
-  const [html, adminHtml, app, admin, api, server, siteTheme] = await Promise.all([
+  const [html, adminHtml, app, admin, api, server, siteTheme, themeBackground] = await Promise.all([
     readFile(indexUrl, "utf8"),
     readFile(adminIndexUrl, "utf8"),
     readFile(appUrl, "utf8"),
@@ -98,6 +103,7 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
     readFile(apiUrl, "utf8"),
     readFile(serverUrl, "utf8"),
     readFile(siteThemeUrl, "utf8"),
+    readFile(themeBackgroundUrl, "utf8"),
   ]);
 
   assert.match(html, /<title>TopoMari<\/title>/);
@@ -112,13 +118,22 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(adminHtml, /name="visual-theme" value="glassmorphism"/);
   assert.match(adminHtml, /id="custom-theme-colors"/);
   assert.match(adminHtml, /id="theme-light-background"/);
+  assert.match(adminHtml, /data-admin-view="theme"/);
+  assert.match(adminHtml, /data-admin-panel="theme"/);
+  assert.match(adminHtml, /id="background-enabled"/);
+  assert.match(adminHtml, /id="light-background-file"/);
+  assert.match(adminHtml, /id="glass-opacity"/);
   assert.match(adminHtml, /sanrokamlan-prog\/komari-theme-Glassmorphism/);
+  assert.match(html, /id="site-background"/);
   assert.match(admin, /adminApi\.saveSite/);
   assert.match(admin, /applySiteTheme/);
   assert.match(app, /applySiteTheme\(meta\)/);
+  assert.match(app, /applyThemeSettings\(meta\)/);
   assert.match(api, /saveSite\(settings, revision, csrfToken\)/);
   assert.match(siteTheme, /VISUAL_THEME_DEFAULTS/);
+  assert.match(themeBackground, /theme-background\/\$\{mode\}/);
   assert.match(server, /\/api\/admin\/site/);
+  assert.match(api, /\/api\/admin\/theme\/background/);
   assert.match(server, /sanitizeSiteSettings/);
 });
 
@@ -152,6 +167,33 @@ test("normalizes visual theme presets and custom colors in the frontend", () => 
   });
 });
 
+test("normalizes public background and glass controls without unsafe URLs", () => {
+  assert.deepEqual(normalizeThemeSettings({
+    backgroundEnabled: true,
+    backgroundType: "video",
+    lightBackground: "local:light",
+    darkBackground: "javascript:alert(1)",
+    backgroundBlur: 14,
+    backgroundOverlay: 35,
+    glassBlur: 24,
+    glassOpacity: 67,
+    glassBorder: 44,
+    cornerRadius: 22,
+  }), {
+    backgroundEnabled: true,
+    backgroundType: "video",
+    lightBackground: "local:light",
+    darkBackground: "",
+    backgroundBlur: 14,
+    backgroundOverlay: 35,
+    glassBlur: 24,
+    glassOpacity: 67,
+    glassBorder: 44,
+    cornerRadius: 22,
+  });
+  assert.equal(resolveThemeBackgroundSource("local:dark", "dark"), "/theme-background/dark");
+});
+
 test("keeps the public dashboard concise and moves management into the admin page", async () => {
   const [html, adminHtml, adminStyles] = await Promise.all([
     readFile(indexUrl, "utf8"),
@@ -168,6 +210,7 @@ test("keeps the public dashboard concise and moves management into the admin pag
   assert.match(html, /Komari \+ 私有探针/);
   assert.match(html, /href="\/admin"/);
   assert.match(adminHtml, /data-admin-view="routes"/);
+  assert.match(adminHtml, /data-admin-view="theme"/);
   assert.match(adminHtml, /id="settings-toggle"/);
   assert.match(adminHtml, /data-admin-panel="general"/);
   assert.match(adminHtml, /data-admin-view="site"/);
@@ -209,6 +252,8 @@ test("serves the public dashboard without an authentication challenge and gates 
   assert.match(server, /const principal = requireAdmin\(request, response\)/);
   assert.match(server, /url\.pathname\.startsWith\("\/api\/admin\/"\)/);
   assert.match(server, /url\.pathname\.startsWith\("\/api\/editor\/"\)/);
+  assert.equal(server.includes("theme-background\\/(light|dark)"), true);
+  assert.match(server, /media-src 'self' blob: https: http:/);
   assert.doesNotMatch(server, /WWW-Authenticate/);
 });
 

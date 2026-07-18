@@ -726,6 +726,18 @@ function syncSiteSettings(site, nextRevision) {
     dark_background: site.themeColors?.darkBackground || "#1c1b19",
     dark_accent: site.themeColors?.darkAccent || "#e4a35f",
   };
+  draft.theme_settings = {
+    background_enabled: site.themeSettings?.backgroundEnabled === true,
+    background_type: site.themeSettings?.backgroundType || "image",
+    light_background: site.themeSettings?.lightBackground || "",
+    dark_background: site.themeSettings?.darkBackground || "",
+    background_blur: site.themeSettings?.backgroundBlur ?? 0,
+    background_overlay: site.themeSettings?.backgroundOverlay ?? 0,
+    glass_blur: site.themeSettings?.glassBlur ?? 18,
+    glass_opacity: site.themeSettings?.glassOpacity ?? 78,
+    glass_border: site.themeSettings?.glassBorder ?? 18,
+    corner_radius: site.themeSettings?.cornerRadius ?? 18,
+  };
   if (nextRevision) revision = nextRevision;
   if (bootstrap?.config) bootstrap.config = clone(draft);
 }

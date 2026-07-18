@@ -12,12 +12,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.7.0-glassmorphism"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.7.0-glassmorphism" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.7.0-glassmorphism" />
-    <script type="module" src="/app.js?v=2.7.0-glassmorphism"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.7.0-theme-settings-2"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.7.0-theme-settings-2" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.7.0-theme-settings-2" />
+    <script type="module" src="/app.js?v=2.7.0-theme-settings-2"></script>
   </head>
   <body>
+    <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
+      <div id="site-background-media" class="site-background-media">
+        <div id="site-background-image" class="site-background-image" hidden></div>
+        <video id="site-background-video" class="site-background-video" muted loop autoplay playsinline preload="auto" hidden></video>
+      </div>
+      <div id="site-background-overlay" class="site-background-overlay"></div>
+    </div>
     <div class="ambient ambient-a" aria-hidden="true"></div>
     <div class="ambient ambient-b" aria-hidden="true"></div>
 

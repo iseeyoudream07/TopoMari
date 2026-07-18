@@ -11,6 +11,18 @@
     "dark_background": "#1c1b19",
     "dark_accent": "#e4a35f"
   },
+  "theme_settings": {
+    "background_enabled": false,
+    "background_type": "image",
+    "light_background": "",
+    "dark_background": "",
+    "background_blur": 0,
+    "background_overlay": 0,
+    "glass_blur": 18,
+    "glass_opacity": 78,
+    "glass_border": 18,
+    "corner_radius": 18
+  },
   "subtitle": "Example multi-hop latency and packet-loss dashboard",
   "refresh_interval_seconds": 15,
   "history_hours": 1,

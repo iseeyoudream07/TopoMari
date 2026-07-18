@@ -10,6 +10,7 @@ import { ProbeStore } from "../lib/probe-store.mjs";
 import {
   sanitizeBranding,
   sanitizeSiteSettings,
+  sanitizeThemeSettings,
   sanitizeTopologyConfig,
   sanitizeVisualThemeSettings,
 } from "../lib/topology-config.mjs";
@@ -21,6 +22,7 @@ const stylesUrl = new URL("../public/styles.css", import.meta.url);
 const installerUrl = new URL("../public/agent/install.sh", import.meta.url);
 const agentUpdaterUrl = new URL("../public/agent/update.sh", import.meta.url);
 const dashboardUpdaterUrl = new URL("../scripts/update-dashboard.sh", import.meta.url);
+const dashboardUninstallerUrl = new URL("../scripts/uninstall-dashboard.sh", import.meta.url);
 const dockerfileUrl = new URL("../Dockerfile", import.meta.url);
 const probeAgentUrl = new URL("../public/agent/probe_agent.py", import.meta.url);
 
@@ -96,6 +98,18 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
       darkBackground: "#1c1b19",
       darkAccent: "#e4a35f",
     },
+    themeSettings: {
+      backgroundEnabled: false,
+      backgroundType: "image",
+      lightBackground: "",
+      darkBackground: "",
+      backgroundBlur: 0,
+      backgroundOverlay: 0,
+      glassBlur: 18,
+      glassOpacity: 78,
+      glassBorder: 18,
+      cornerRadius: 18,
+    },
   });
   assert.deepEqual(sanitizeSiteSettings({
     site_name: "  My site  ",
@@ -112,6 +126,18 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
       lightAccent: "#a7622d",
       darkBackground: "#1c1b19",
       darkAccent: "#e4a35f",
+    },
+    themeSettings: {
+      backgroundEnabled: false,
+      backgroundType: "image",
+      lightBackground: "",
+      darkBackground: "",
+      backgroundBlur: 0,
+      backgroundOverlay: 0,
+      glassBlur: 18,
+      glassOpacity: 78,
+      glassBorder: 18,
+      cornerRadius: 18,
     },
   });
 });
@@ -140,6 +166,35 @@ test("visual theme settings whitelist presets and six-digit colors", () => {
   assert.equal(sanitizeVisualThemeSettings({ visual_theme: "unknown" }).visualTheme, "topomari");
   assert.equal(sanitizeVisualThemeSettings({ custom_theme_colors: true, customThemeColors: false }).customThemeColors, false);
   assert.equal(sanitizeSiteSettings({ auto_theme_beijing: true, autoThemeBeijing: false }).autoThemeBeijing, false);
+});
+
+test("theme detail settings validate sources and clamp visual controls", () => {
+  assert.deepEqual(sanitizeThemeSettings({
+    background_enabled: true,
+    background_type: "video",
+    light_background: "local:light",
+    dark_background: "https://example.com/background.webm",
+    background_blur: 99,
+    background_overlay: -140,
+    glass_blur: -2,
+    glass_opacity: 12,
+    glass_border: 140,
+    corner_radius: 90,
+  }), {
+    backgroundEnabled: true,
+    backgroundType: "video",
+    lightBackground: "local:light",
+    darkBackground: "https://example.com/background.webm",
+    backgroundBlur: 40,
+    backgroundOverlay: -100,
+    glassBlur: 0,
+    glassOpacity: 45,
+    glassBorder: 100,
+    cornerRadius: 28,
+  });
+  assert.equal(sanitizeThemeSettings({ lightBackground: "javascript:alert(1)" }).lightBackground, "");
+  assert.equal(sanitizeThemeSettings({ darkBackground: "https://user:pass@example.com/a.png" }).darkBackground, "");
+  assert.equal(sanitizeThemeSettings({ darkBackground: "/assets/night.webp" }).darkBackground, "/assets/night.webp");
 });
 
 test("branding keeps separate safe defaults for the browser title and page heading", () => {
@@ -223,10 +278,11 @@ assert "timestamp" not in sample
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
-test("Agent and dashboard updaters preserve credentials and runtime state", async () => {
-  const [agentUpdater, dashboardUpdater, dockerfile] = await Promise.all([
+test("Agent and dashboard lifecycle scripts preserve credentials and runtime state", async () => {
+  const [agentUpdater, dashboardUpdater, dashboardUninstaller, dockerfile] = await Promise.all([
     readFile(agentUpdaterUrl, "utf8"),
     readFile(dashboardUpdaterUrl, "utf8"),
+    readFile(dashboardUninstallerUrl, "utf8"),
     readFile(dockerfileUrl, "utf8"),
   ]);
   assert.match(agentUpdater, /--config "\$CONFIG_FILE" --once/);
@@ -240,6 +296,13 @@ test("Agent and dashboard updaters preserve credentials and runtime state", asyn
   assert.match(dashboardUpdater, /umask 022\s+git -C "\$PROJECT_DIR" pull --ff-only/s);
   assert.match(dashboardUpdater, /AGENT_HASH_AFTER_PULL/);
   assert.match(dashboardUpdater, /probe history exists but config\/agents\.json is missing/);
+  assert.match(dashboardUninstaller, /Refusing to uninstall from unsafe project path/);
+  assert.match(dashboardUninstaller, /tar -C "\$PROJECT_DIR" -czf "\$RUNTIME_BACKUP"/);
+  assert.match(dashboardUninstaller, /\.env config data/);
+  assert.match(dashboardUninstaller, /\.uninstalled-\$TIMESTAMP/);
+  assert.match(dashboardUninstaller, /docker compose[^\n]+ down/);
+  assert.doesNotMatch(dashboardUninstaller, /docker compose[^\n]+ down[^\n]+-v/);
+  assert.doesNotMatch(dashboardUninstaller, /rm -rf/);
   assert.match(dockerfile, /COPY --chown=node:node package\.json server\.mjs/);
   assert.match(dockerfile, /COPY --chown=node:node public \.\/public/);
 });
