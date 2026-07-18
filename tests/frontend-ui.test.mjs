@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import { getLanguage, setLanguage, t } from "../public/frontend/i18n.js";
+import {
+  defaultVisualThemeColors,
+  normalizeVisualThemeSettings,
+} from "../public/frontend/site-theme.js";
 
 const indexUrl = new URL("../public/index.html", import.meta.url);
 const adminIndexUrl = new URL("../public/admin/index.html", import.meta.url);
@@ -15,6 +19,7 @@ const adminStylesUrl = new URL("../public/admin.css", import.meta.url);
 const editorUrl = new URL("../public/editor.js", import.meta.url);
 const apiUrl = new URL("../public/frontend/api-client.js", import.meta.url);
 const preferenceBootstrapUrl = new URL("../public/frontend/preference-bootstrap.js", import.meta.url);
+const siteThemeUrl = new URL("../public/frontend/site-theme.js", import.meta.url);
 const serverUrl = new URL("../server.mjs", import.meta.url);
 
 test("ships persistent Chinese, English, light, and dark preferences", async () => {
@@ -85,13 +90,14 @@ test("uses the circular TopoMari icon and requested interface fonts", async () =
 });
 
 test("keeps TopoMari defaults while allowing admin-controlled site settings", async () => {
-  const [html, adminHtml, app, admin, api, server] = await Promise.all([
+  const [html, adminHtml, app, admin, api, server, siteTheme] = await Promise.all([
     readFile(indexUrl, "utf8"),
     readFile(adminIndexUrl, "utf8"),
     readFile(appUrl, "utf8"),
     readFile(adminUrl, "utf8"),
     readFile(apiUrl, "utf8"),
     readFile(serverUrl, "utf8"),
+    readFile(siteThemeUrl, "utf8"),
   ]);
 
   assert.match(html, /<title>TopoMari<\/title>/);
@@ -102,10 +108,48 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(adminHtml, /id="site-description-input"/);
   assert.match(adminHtml, /id="favicon-file"/);
   assert.match(adminHtml, /id="auto-theme-beijing"/);
+  assert.match(adminHtml, /data-admin-view="general"/);
+  assert.match(adminHtml, /name="visual-theme" value="glassmorphism"/);
+  assert.match(adminHtml, /id="custom-theme-colors"/);
+  assert.match(adminHtml, /id="theme-light-background"/);
+  assert.match(adminHtml, /sanrokamlan-prog\/komari-theme-Glassmorphism/);
   assert.match(admin, /adminApi\.saveSite/);
-  assert.match(api, /saveSite\(siteName, description, autoThemeBeijing, revision, csrfToken\)/);
+  assert.match(admin, /applySiteTheme/);
+  assert.match(app, /applySiteTheme\(meta\)/);
+  assert.match(api, /saveSite\(settings, revision, csrfToken\)/);
+  assert.match(siteTheme, /VISUAL_THEME_DEFAULTS/);
   assert.match(server, /\/api\/admin\/site/);
   assert.match(server, /sanitizeSiteSettings/);
+});
+
+test("keeps the admin login page concise", async () => {
+  const adminHtml = await readFile(adminIndexUrl, "utf8");
+  assert.match(adminHtml, /id="login-title"[^>]*>登录<\/h1>/);
+  assert.match(adminHtml, /class="back-home-link"[^>]*>返回<\/a>/);
+  assert.doesNotMatch(adminHtml, /登录后台管理|公开面板无需登录|返回公开面板/);
+});
+
+test("normalizes visual theme presets and custom colors in the frontend", () => {
+  assert.deepEqual(defaultVisualThemeColors("glassmorphism"), {
+    lightBackground: "#e8edf4",
+    lightAccent: "#059669",
+    darkBackground: "#0b1020",
+    darkAccent: "#34d399",
+  });
+  assert.deepEqual(normalizeVisualThemeSettings({
+    visualTheme: "glassmorphism",
+    customThemeColors: true,
+    themeColors: { lightBackground: "#ABCDEF", lightAccent: "bad" },
+  }), {
+    visualTheme: "glassmorphism",
+    customThemeColors: true,
+    themeColors: {
+      lightBackground: "#abcdef",
+      lightAccent: "#059669",
+      darkBackground: "#0b1020",
+      darkAccent: "#34d399",
+    },
+  });
 });
 
 test("keeps the public dashboard concise and moves management into the admin page", async () => {
@@ -125,9 +169,20 @@ test("keeps the public dashboard concise and moves management into the admin pag
   assert.match(html, /href="\/admin"/);
   assert.match(adminHtml, /data-admin-view="routes"/);
   assert.match(adminHtml, /id="settings-toggle"/);
+  assert.match(adminHtml, /data-admin-panel="general"/);
   assert.match(adminHtml, /data-admin-view="site"/);
   assert.match(adminHtml, /data-i18n="deploy\.help"/);
   assert.match(adminStyles, /\.admin-callout\[hidden\]\s*\{\s*display:\s*none/s);
+});
+
+test("admin scripts only bind IDs shipped by the admin page", async () => {
+  const [adminHtml, admin] = await Promise.all([
+    readFile(adminIndexUrl, "utf8"),
+    readFile(adminUrl, "utf8"),
+  ]);
+  const ids = new Set([...adminHtml.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
+  const referenced = [...admin.matchAll(/getElementById\("([^"]+)"\)/g)].map((match) => match[1]);
+  assert.deepEqual(referenced.filter((id) => !ids.has(id)), []);
 });
 
 test("keeps browser requests behind the frontend API client", async () => {

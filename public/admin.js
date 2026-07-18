@@ -1,6 +1,11 @@
 import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js";
 import { t } from "./frontend/i18n.js";
 import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
+import {
+  applySiteTheme,
+  defaultVisualThemeColors,
+  normalizeVisualThemeSettings,
+} from "./frontend/site-theme.js";
 import { initTopologyEditor } from "./editor.js";
 
 const elements = {
@@ -20,6 +25,16 @@ const elements = {
   logout: document.getElementById("logout-button"),
   notice: document.getElementById("admin-notice"),
   editorDisabled: document.getElementById("editor-disabled"),
+  generalForm: document.getElementById("general-settings-form"),
+  generalSave: document.getElementById("general-save"),
+  generalSaveStatus: document.getElementById("general-save-status"),
+  customThemeColors: document.getElementById("custom-theme-colors"),
+  themeColorFields: document.getElementById("theme-color-fields"),
+  themeColorsReset: document.getElementById("theme-colors-reset"),
+  themeLightBackground: document.getElementById("theme-light-background"),
+  themeLightAccent: document.getElementById("theme-light-accent"),
+  themeDarkBackground: document.getElementById("theme-dark-background"),
+  themeDarkAccent: document.getElementById("theme-dark-accent"),
   siteForm: document.getElementById("site-settings-form"),
   siteName: document.getElementById("site-name-input"),
   siteDescription: document.getElementById("site-description-input"),
@@ -49,14 +64,17 @@ function updateFaviconImages(version = Date.now()) {
   if (link) link.href = source;
 }
 
-function updateSiteIdentity(site) {
+function updateSiteIdentity(site, { syncVisualTheme = true } = {}) {
   if (!site) return;
   const siteName = site.siteName || "TopoMari";
   document.querySelectorAll("#login-site-name, #admin-site-name").forEach((element) => {
     element.textContent = siteName;
   });
   document.title = `${siteName} · ${t("admin.consoleTitle")}`;
-  setAutoThemeBeijing(site.autoThemeBeijing === true);
+  if (syncVisualTheme) {
+    applySiteTheme(site);
+    setAutoThemeBeijing(site.autoThemeBeijing === true);
+  }
   if (site.faviconVersion) updateFaviconImages(site.faviconVersion);
 }
 
@@ -107,11 +125,12 @@ function openSidebar() {
 }
 
 function selectedView() {
-  return window.location.hash === "#site" ? "site" : "routes";
+  const requested = window.location.hash.slice(1);
+  return ["routes", "general", "site"].includes(requested) ? requested : "routes";
 }
 
 function activateView(view, { updateHash = true } = {}) {
-  const resolved = view === "site" ? "site" : "routes";
+  const resolved = ["general", "site"].includes(view) ? view : "routes";
   document.querySelectorAll("[data-admin-panel]").forEach((panel) => {
     panel.hidden = panel.dataset.adminPanel !== resolved;
   });
@@ -121,10 +140,58 @@ function activateView(view, { updateHash = true } = {}) {
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  elements.settingsToggle.classList.toggle("is-active", resolved === "site");
-  elements.breadcrumb.textContent = t(resolved === "site" ? "admin.site" : "admin.routes");
-  if (updateHash) history.replaceState(null, "", resolved === "site" ? "#site" : "#routes");
+  elements.settingsToggle.classList.toggle("is-active", resolved === "general" || resolved === "site");
+  const breadcrumbKey = resolved === "general" ? "admin.general" : resolved === "site" ? "admin.site" : "admin.routes";
+  elements.breadcrumb.textContent = t(breadcrumbKey);
+  if (updateHash) history.replaceState(null, "", `#${resolved}`);
   closeSidebar();
+}
+
+function selectedVisualTheme() {
+  return document.querySelector('input[name="visual-theme"]:checked')?.value || "topomari";
+}
+
+function setThemeColorInputs(colors) {
+  const pairs = [
+    [elements.themeLightBackground, colors.lightBackground],
+    [elements.themeLightAccent, colors.lightAccent],
+    [elements.themeDarkBackground, colors.darkBackground],
+    [elements.themeDarkAccent, colors.darkAccent],
+  ];
+  pairs.forEach(([input, color]) => {
+    input.value = color;
+    const output = input.parentElement.querySelector("output");
+    if (output) output.value = color;
+  });
+}
+
+function generalThemeDraft() {
+  return normalizeVisualThemeSettings({
+    visualTheme: selectedVisualTheme(),
+    customThemeColors: elements.customThemeColors.checked,
+    themeColors: {
+      lightBackground: elements.themeLightBackground.value,
+      lightAccent: elements.themeLightAccent.value,
+      darkBackground: elements.themeDarkBackground.value,
+      darkAccent: elements.themeDarkAccent.value,
+    },
+  });
+}
+
+function previewGeneralTheme() {
+  elements.themeColorFields.hidden = !elements.customThemeColors.checked;
+  applySiteTheme(generalThemeDraft());
+}
+
+function fillGeneralForm(site) {
+  const settings = normalizeVisualThemeSettings(site);
+  document.querySelectorAll('input[name="visual-theme"]').forEach((input) => {
+    input.checked = input.value === settings.visualTheme;
+  });
+  elements.customThemeColors.checked = settings.customThemeColors;
+  setThemeColorInputs(settings.themeColors);
+  elements.themeColorFields.hidden = !settings.customThemeColors;
+  elements.generalSaveStatus.textContent = "";
 }
 
 function fillSiteForm(site) {
@@ -134,6 +201,7 @@ function fillSiteForm(site) {
   elements.descriptionCount.textContent = String(elements.siteDescription.value.length);
   elements.autoTheme.checked = site.autoThemeBeijing === true;
   elements.siteSaveStatus.textContent = "";
+  fillGeneralForm(site);
   updateFaviconStatus();
   updateSiteIdentity(site);
   updateFaviconImages(site.faviconVersion || Date.now());
@@ -227,19 +295,73 @@ elements.siteDescription.addEventListener("input", () => {
   elements.descriptionCount.textContent = String(elements.siteDescription.value.length);
 });
 
+document.querySelectorAll('input[name="visual-theme"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    if (!elements.customThemeColors.checked) {
+      setThemeColorInputs(defaultVisualThemeColors(selectedVisualTheme()));
+    }
+    previewGeneralTheme();
+  });
+});
+
+elements.customThemeColors.addEventListener("change", previewGeneralTheme);
+
+[
+  elements.themeLightBackground,
+  elements.themeLightAccent,
+  elements.themeDarkBackground,
+  elements.themeDarkAccent,
+].forEach((input) => {
+  input.addEventListener("input", () => {
+    const output = input.parentElement.querySelector("output");
+    if (output) output.value = input.value;
+    if (elements.customThemeColors.checked) previewGeneralTheme();
+  });
+});
+
+elements.themeColorsReset.addEventListener("click", () => {
+  setThemeColorInputs(defaultVisualThemeColors(selectedVisualTheme()));
+  previewGeneralTheme();
+});
+
+elements.generalForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!siteState) return;
+  elements.generalSave.disabled = true;
+  elements.generalSaveStatus.textContent = t("site.saving");
+  try {
+    const site = await adminApi.saveSite({
+      siteName: siteState.siteName,
+      description: siteState.description,
+      autoThemeBeijing: elements.autoTheme.checked,
+      ...generalThemeDraft(),
+    }, siteState.revision, session.csrfToken);
+    fillSiteForm(site);
+    editorController?.syncSiteSettings?.(site, site.revision);
+    elements.generalSaveStatus.textContent = t("general.saved");
+    showNotice(t("general.saved"));
+  } catch (error) {
+    if (await handleUnauthorized(error)) return;
+    elements.generalSaveStatus.textContent = error.message;
+    showNotice(error.message, "error");
+    if (error.status === 409) await loadSiteSettings();
+  } finally {
+    elements.generalSave.disabled = false;
+  }
+});
+
 elements.siteForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!siteState) return;
   elements.siteSave.disabled = true;
   elements.siteSaveStatus.textContent = t("site.saving");
   try {
-    const site = await adminApi.saveSite(
-      elements.siteName.value.trim(),
-      elements.siteDescription.value.trim(),
-      elements.autoTheme.checked,
-      siteState.revision,
-      session.csrfToken,
-    );
+    const site = await adminApi.saveSite({
+      siteName: elements.siteName.value.trim(),
+      description: elements.siteDescription.value.trim(),
+      autoThemeBeijing: siteState.autoThemeBeijing,
+      ...normalizeVisualThemeSettings(siteState),
+    }, siteState.revision, session.csrfToken);
     fillSiteForm(site);
     editorController?.syncSiteSettings?.(site, site.revision);
     elements.siteSaveStatus.textContent = t("site.saved");
@@ -294,7 +416,7 @@ elements.faviconReset.addEventListener("click", async () => {
 document.addEventListener("topomari:languagechange", () => {
   activateView(selectedView(), { updateHash: false });
   updateFaviconStatus();
-  if (siteState) updateSiteIdentity(siteState);
+  if (siteState) updateSiteIdentity(siteState, { syncVisualTheme: false });
 });
 
 initPreferences();

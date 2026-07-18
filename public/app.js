@@ -1,6 +1,7 @@
 import { dashboardApi } from "./frontend/api-client.js";
 import { getLocale, t } from "./frontend/i18n.js";
 import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
+import { applySiteTheme } from "./frontend/site-theme.js";
 import { renderSparkline } from "./sparkline.js";
 
 const elements = {
@@ -253,6 +254,7 @@ function renderDashboard(dashboard) {
   document.title = meta.siteName || "TopoMari";
   elements.title.textContent = meta.mainTitle || meta.title || "TopoMari";
   if (elements.description) elements.description.setAttribute("content", meta.description || "");
+  applySiteTheme(meta);
   setAutoThemeBeijing(meta.autoThemeBeijing === true);
   elements.sourceChip.dataset.mode = meta.mode;
   elements.sourceLabel.textContent = t("source.hybrid");

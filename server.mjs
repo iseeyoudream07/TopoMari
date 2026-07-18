@@ -459,6 +459,9 @@ async function publicSiteSettingsPayload() {
     siteName: site.siteName,
     description: site.description,
     autoThemeBeijing: site.autoThemeBeijing,
+    visualTheme: site.visualTheme,
+    customThemeColors: site.customThemeColors,
+    themeColors: site.themeColors,
     customFavicon: site.customFavicon,
     faviconVersion: site.faviconVersion,
     faviconUrl: site.faviconUrl,
@@ -514,13 +517,42 @@ async function handleAdminApi(request, response, url, principal) {
     if (!requireJsonContent(request, response)) return;
     const body = await readJsonBody(request, maxEditorBodyBytes);
     const current = await topologyConfigStore.read();
-    const site = sanitizeSiteSettings(body);
+    const site = sanitizeSiteSettings({
+      ...current.config,
+      ...body,
+      theme_colors: {
+        ...(current.config.theme_colors || {}),
+        ...(body.theme_colors || {}),
+      },
+      themeColors: {
+        lightBackground: body.themeColors?.lightBackground
+          ?? body.theme_colors?.light_background
+          ?? current.config.theme_colors?.light_background,
+        lightAccent: body.themeColors?.lightAccent
+          ?? body.theme_colors?.light_accent
+          ?? current.config.theme_colors?.light_accent,
+        darkBackground: body.themeColors?.darkBackground
+          ?? body.theme_colors?.dark_background
+          ?? current.config.theme_colors?.dark_background,
+        darkAccent: body.themeColors?.darkAccent
+          ?? body.theme_colors?.dark_accent
+          ?? current.config.theme_colors?.dark_accent,
+      },
+    });
     const result = await topologyConfigStore.write({
       ...current.config,
       site_name: site.siteName,
       title: site.siteName,
       description: site.description,
       auto_theme_beijing: site.autoThemeBeijing,
+      visual_theme: site.visualTheme,
+      custom_theme_colors: site.customThemeColors,
+      theme_colors: {
+        light_background: site.themeColors.lightBackground,
+        light_accent: site.themeColors.lightAccent,
+        dark_background: site.themeColors.darkBackground,
+        dark_accent: site.themeColors.darkAccent,
+      },
     }, String(body.revision || ""));
     dashboardCache = { expiresAt: 0, value: null, promise: null };
     return json(response, 200, {

@@ -44,7 +44,7 @@ ENABLE_TOPOLOGY_EDITOR=true
 
 如果 Komari 需要登录态，再填写 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。这些值只能存在于服务器 `.env` 中。
 
-公开面板 `/` 不要求登录。`DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 只用于 `/admin` 后台；后台包含“链路管理”和“设置 → 站点”，站点设置可以修改名称、描述、自定义 Favicon，以及启用北京时间日出日落自动主题。
+公开面板 `/` 不要求登录。`DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 只用于 `/admin` 后台；“设置 → 通用”可以切换 TopoMari / Glassmorphism、调整日夜配色并启用北京时间日出日落自动主题，“设置 → 站点”可以修改名称、描述和自定义 Favicon。
 
 只想先查看演示页面时，保持 `KOMARI_BASE_URL` 为空并使用 `DEMO_MODE=true`。
 

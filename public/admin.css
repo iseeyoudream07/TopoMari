@@ -469,6 +469,189 @@
   font-size: 17px;
 }
 
+.settings-card-copy a {
+  display: inline-block;
+  margin-top: 7px;
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+.theme-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.theme-preset-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-inset);
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.theme-preset-option:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.theme-preset-option:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.theme-preset-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-preset-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.theme-preset-option > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.theme-preset-option strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.theme-preset-option small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.theme-preset-swatch {
+  position: relative;
+  display: flex;
+  height: 58px;
+  align-items: flex-end;
+  gap: 7px;
+  overflow: hidden;
+  padding: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(167, 98, 45, 0.3), transparent 38%),
+    #eeede5;
+}
+
+.theme-preset-swatch i {
+  display: block;
+  width: 26px;
+  height: 16px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 5px 16px rgba(60, 55, 44, 0.12);
+}
+
+.theme-preset-swatch i:nth-child(2) {
+  height: 26px;
+}
+
+.theme-preset-swatch i:nth-child(3) {
+  height: 34px;
+}
+
+[data-theme-preview="glassmorphism"] .theme-preset-swatch {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(16, 185, 129, 0.48), transparent 45%),
+    radial-gradient(circle at 95% 95%, rgba(129, 140, 248, 0.4), transparent 46%),
+    #e8edf4;
+}
+
+[data-theme-preview="glassmorphism"] .theme-preset-swatch i {
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  background: rgba(241, 245, 249, 0.66);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.theme-color-settings {
+  display: grid;
+  gap: 20px;
+}
+
+.theme-color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.theme-color-grid[hidden] {
+  display: none;
+}
+
+.theme-color-grid > label {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.color-field {
+  display: flex;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 7px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-field);
+}
+
+.color-field input[type="color"] {
+  width: 34px;
+  height: 28px;
+  flex: 0 0 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.color-field input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-field input[type="color"]::-webkit-color-swatch {
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+}
+
+.color-field output {
+  overflow: hidden;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.theme-colors-reset {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
 .favicon-editor {
   display: flex;
   align-items: center;
@@ -598,6 +781,11 @@
   .settings-card {
     grid-template-columns: 1fr;
     gap: 22px;
+  }
+
+  .theme-preset-grid,
+  .theme-color-grid {
+    grid-template-columns: 1fr;
   }
 }
 

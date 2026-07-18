@@ -81,6 +81,109 @@
   --ambient-b: rgba(121, 182, 198, 0.13);
 }
 
+/*
+ * Native TopoMari port of the emerald Glassmorphism palette. The visual ideas
+ * and base glass tokens are adapted from sanrokamlan-prog/komari-theme-Glassmorphism
+ * (MIT); component structure and data rendering remain TopoMari-owned.
+ */
+:root[data-visual-theme="glassmorphism"][data-theme="light"] {
+  --bg: #e8edf4;
+  --bg-elevated: rgba(241, 245, 249, 0.74);
+  --bg-soft: rgba(226, 232, 240, 0.78);
+  --bg-node: rgba(248, 250, 252, 0.78);
+  --surface: rgba(241, 245, 249, 0.74);
+  --surface-solid: rgba(241, 245, 249, 0.78);
+  --surface-soft: rgba(226, 232, 240, 0.72);
+  --surface-inset: rgba(226, 232, 240, 0.76);
+  --surface-field: rgba(248, 250, 252, 0.84);
+  --surface-hover: rgba(248, 250, 252, 0.8);
+  --border: rgba(148, 163, 184, 0.34);
+  --border-strong: rgba(100, 116, 139, 0.48);
+  --border-bright: rgba(5, 150, 105, 0.5);
+  --text: #10151c;
+  --muted: #374151;
+  --subtle: #667085;
+  --accent: #059669;
+  --accent-strong: #047857;
+  --accent-soft: rgba(5, 150, 105, 0.13);
+  --green: #059669;
+  --green-soft: rgba(5, 150, 105, 0.13);
+  --cyan: #0f766e;
+  --cyan-soft: rgba(15, 118, 110, 0.12);
+  --grid-line: rgba(5, 150, 105, 0.06);
+  --shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+  --shadow-soft: 0 8px 28px rgba(15, 23, 42, 0.13);
+  --ambient-a: rgba(16, 185, 129, 0.25);
+  --ambient-b: rgba(129, 140, 248, 0.22);
+}
+
+:root[data-visual-theme="glassmorphism"][data-theme="dark"] {
+  --bg: #0b1020;
+  --bg-elevated: rgba(13, 17, 26, 0.85);
+  --bg-soft: rgba(16, 22, 36, 0.86);
+  --bg-node: rgba(17, 24, 39, 0.86);
+  --surface: rgba(13, 17, 26, 0.85);
+  --surface-solid: rgba(13, 17, 26, 0.88);
+  --surface-soft: rgba(16, 22, 36, 0.84);
+  --surface-inset: rgba(16, 22, 36, 0.86);
+  --surface-field: rgba(11, 16, 32, 0.9);
+  --surface-hover: rgba(17, 24, 39, 0.91);
+  --border: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.3);
+  --border-bright: rgba(52, 211, 153, 0.55);
+  --text: #f8fafc;
+  --muted: #d6dae4;
+  --subtle: #98a2b3;
+  --accent: #34d399;
+  --accent-strong: #6ee7b7;
+  --accent-soft: rgba(52, 211, 153, 0.14);
+  --green: #34d399;
+  --green-soft: rgba(52, 211, 153, 0.13);
+  --cyan: #67e8f9;
+  --cyan-soft: rgba(103, 232, 249, 0.12);
+  --grid-line: rgba(103, 232, 249, 0.055);
+  --shadow: 0 18px 52px rgba(0, 0, 0, 0.48);
+  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --ambient-a: rgba(16, 185, 129, 0.2);
+  --ambient-b: rgba(99, 102, 241, 0.22);
+}
+
+:root[data-custom-theme-colors="true"][data-theme="light"] {
+  --bg: var(--site-light-background);
+  --bg-elevated: color-mix(in srgb, var(--site-light-background) 46%, rgba(255, 255, 255, 0.88));
+  --bg-soft: color-mix(in srgb, var(--site-light-background) 78%, white);
+  --bg-node: color-mix(in srgb, var(--site-light-background) 35%, rgba(255, 255, 255, 0.9));
+  --surface: var(--bg-elevated);
+  --surface-solid: color-mix(in srgb, var(--site-light-background) 38%, rgba(255, 255, 255, 0.92));
+  --surface-soft: color-mix(in srgb, var(--site-light-background) 70%, white);
+  --surface-inset: color-mix(in srgb, var(--site-light-background) 62%, white);
+  --surface-field: color-mix(in srgb, var(--site-light-background) 25%, white);
+  --surface-hover: color-mix(in srgb, var(--site-light-background) 52%, white);
+  --border-bright: color-mix(in srgb, var(--site-light-accent) 52%, transparent);
+  --accent: var(--site-light-accent);
+  --accent-strong: color-mix(in srgb, var(--site-light-accent) 78%, black);
+  --accent-soft: color-mix(in srgb, var(--site-light-accent) 14%, transparent);
+  --ambient-a: color-mix(in srgb, var(--site-light-accent) 26%, transparent);
+}
+
+:root[data-custom-theme-colors="true"][data-theme="dark"] {
+  --bg: var(--site-dark-background);
+  --bg-elevated: color-mix(in srgb, var(--site-dark-background) 82%, rgba(255, 255, 255, 0.16));
+  --bg-soft: color-mix(in srgb, var(--site-dark-background) 84%, white);
+  --bg-node: color-mix(in srgb, var(--site-dark-background) 86%, white);
+  --surface: var(--bg-elevated);
+  --surface-solid: color-mix(in srgb, var(--site-dark-background) 82%, rgba(255, 255, 255, 0.18));
+  --surface-soft: color-mix(in srgb, var(--site-dark-background) 82%, white);
+  --surface-inset: color-mix(in srgb, var(--site-dark-background) 91%, black);
+  --surface-field: color-mix(in srgb, var(--site-dark-background) 88%, black);
+  --surface-hover: color-mix(in srgb, var(--site-dark-background) 76%, white);
+  --border-bright: color-mix(in srgb, var(--site-dark-accent) 54%, transparent);
+  --accent: var(--site-dark-accent);
+  --accent-strong: color-mix(in srgb, var(--site-dark-accent) 82%, white);
+  --accent-soft: color-mix(in srgb, var(--site-dark-accent) 15%, transparent);
+  --ambient-a: color-mix(in srgb, var(--site-dark-accent) 22%, transparent);
+}
+
 html {
   background: var(--bg);
   scroll-behavior: smooth;
@@ -359,6 +462,58 @@ h2 {
   background: var(--bg-elevated);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(18px);
+}
+
+:root[data-visual-theme="glassmorphism"] .stats-grid {
+  gap: 12px;
+  border-bottom: 0;
+}
+
+:root[data-visual-theme="glassmorphism"] .stat-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-soft);
+  -webkit-backdrop-filter: blur(14px) saturate(145%);
+  backdrop-filter: blur(14px) saturate(145%);
+}
+
+:root[data-visual-theme="glassmorphism"] .stat-card:first-child,
+:root[data-visual-theme="glassmorphism"] .stat-card:last-child {
+  padding-inline: 24px;
+}
+
+:root[data-visual-theme="glassmorphism"] .glass-panel,
+:root[data-visual-theme="glassmorphism"] .login-card,
+:root[data-visual-theme="glassmorphism"] .settings-card,
+:root[data-visual-theme="glassmorphism"] .admin-sidebar,
+:root[data-visual-theme="glassmorphism"] .admin-toolbar {
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-soft);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+:root[data-visual-theme="glassmorphism"] .route-card,
+:root[data-visual-theme="glassmorphism"] .asset-node,
+:root[data-visual-theme="glassmorphism"] .manager-button,
+:root[data-visual-theme="glassmorphism"] .route-list-item {
+  -webkit-backdrop-filter: blur(12px) saturate(135%);
+  backdrop-filter: blur(12px) saturate(135%);
+}
+
+@supports (-moz-appearance: none) {
+  :root[data-visual-theme="glassmorphism"] .stat-card,
+  :root[data-visual-theme="glassmorphism"] .glass-panel,
+  :root[data-visual-theme="glassmorphism"] .login-card,
+  :root[data-visual-theme="glassmorphism"] .settings-card,
+  :root[data-visual-theme="glassmorphism"] .route-card,
+  :root[data-visual-theme="glassmorphism"] .asset-node {
+    background: color-mix(in srgb, var(--surface-solid) 92%, var(--bg));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 .topology-panel {

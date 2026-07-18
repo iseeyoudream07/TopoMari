@@ -7,7 +7,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AgentRegistry } from "../lib/agent-registry.mjs";
 import { ProbeStore } from "../lib/probe-store.mjs";
-import { sanitizeBranding, sanitizeSiteSettings, sanitizeTopologyConfig } from "../lib/topology-config.mjs";
+import {
+  sanitizeBranding,
+  sanitizeSiteSettings,
+  sanitizeTopologyConfig,
+  sanitizeVisualThemeSettings,
+} from "../lib/topology-config.mjs";
 import { TopologyConfigStore, TopologyRevisionConflict } from "../lib/topology-config-store.mjs";
 
 const adminIndexUrl = new URL("../public/admin/index.html", import.meta.url);
@@ -73,6 +78,9 @@ test("topology editor whitelist removes target addresses and arbitrary secrets",
   assert.equal(normalized.site_name, "TopoMari site");
   assert.equal(normalized.description, "A private topology overview");
   assert.equal(normalized.auto_theme_beijing, true);
+  assert.equal(normalized.visual_theme, "topomari");
+  assert.equal(normalized.custom_theme_colors, false);
+  assert.equal(normalized.theme_colors.light_background, "#eeede5");
 });
 
 test("site settings sanitize the public metadata and Beijing theme option", () => {
@@ -80,6 +88,14 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
     siteName: "TopoMari",
     description: "Multi-hop latency and packet-loss visibility",
     autoThemeBeijing: false,
+    visualTheme: "topomari",
+    customThemeColors: false,
+    themeColors: {
+      lightBackground: "#eeede5",
+      lightAccent: "#a7622d",
+      darkBackground: "#1c1b19",
+      darkAccent: "#e4a35f",
+    },
   });
   assert.deepEqual(sanitizeSiteSettings({
     site_name: "  My site  ",
@@ -89,7 +105,41 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
     siteName: "My site",
     description: "My description",
     autoThemeBeijing: true,
+    visualTheme: "topomari",
+    customThemeColors: false,
+    themeColors: {
+      lightBackground: "#eeede5",
+      lightAccent: "#a7622d",
+      darkBackground: "#1c1b19",
+      darkAccent: "#e4a35f",
+    },
   });
+});
+
+test("visual theme settings whitelist presets and six-digit colors", () => {
+  assert.deepEqual(sanitizeVisualThemeSettings({
+    visualTheme: "glassmorphism",
+    customThemeColors: true,
+    themeColors: {
+      lightBackground: "#ABCDEF",
+      lightAccent: "javascript:alert(1)",
+      darkBackground: "#101827",
+      darkAccent: "#12abefcc",
+    },
+  }), {
+    visualTheme: "glassmorphism",
+    customThemeColors: true,
+    themeColors: {
+      lightBackground: "#abcdef",
+      lightAccent: "#059669",
+      darkBackground: "#101827",
+      darkAccent: "#34d399",
+    },
+  });
+
+  assert.equal(sanitizeVisualThemeSettings({ visual_theme: "unknown" }).visualTheme, "topomari");
+  assert.equal(sanitizeVisualThemeSettings({ custom_theme_colors: true, customThemeColors: false }).customThemeColors, false);
+  assert.equal(sanitizeSiteSettings({ auto_theme_beijing: true, autoThemeBeijing: false }).autoThemeBeijing, false);
 });
 
 test("branding keeps separate safe defaults for the browser title and page heading", () => {
