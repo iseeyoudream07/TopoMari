@@ -718,6 +718,14 @@ function syncSiteSettings(site, nextRevision) {
   draft.title = site.siteName || draft.title;
   draft.description = site.description || draft.description;
   draft.auto_theme_beijing = site.autoThemeBeijing === true;
+  draft.visual_theme = site.visualTheme || "topomari";
+  draft.custom_theme_colors = site.customThemeColors === true;
+  draft.theme_colors = {
+    light_background: site.themeColors?.lightBackground || "#eeede5",
+    light_accent: site.themeColors?.lightAccent || "#a7622d",
+    dark_background: site.themeColors?.darkBackground || "#1c1b19",
+    dark_accent: site.themeColors?.darkAccent || "#e4a35f",
+  };
   if (nextRevision) revision = nextRevision;
   if (bootstrap?.config) bootstrap.config = clone(draft);
 }

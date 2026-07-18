@@ -11,11 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.6.0-admin"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.6.0-admin" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.6.0-admin" />
-    <link rel="stylesheet" href="/admin.css?v=2.6.0-admin" />
-    <script type="module" src="/admin.js?v=2.6.0-admin"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.7.0-glassmorphism"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.7.0-glassmorphism" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.7.0-glassmorphism" />
+    <link rel="stylesheet" href="/admin.css?v=2.7.0-glassmorphism" />
+    <script type="module" src="/admin.js?v=2.7.0-glassmorphism"></script>
   </head>
   <body class="admin-body">
     <div class="ambient ambient-a" aria-hidden="true"></div>
@@ -28,9 +28,7 @@
           <span id="login-site-name">TopoMari</span>
         </a>
         <div>
-          <p class="admin-kicker" data-i18n="admin.console">ADMIN CONSOLE</p>
-          <h1 id="login-title" data-i18n="admin.loginTitle">登录后台管理</h1>
-          <p class="login-copy" data-i18n="admin.loginDescription">公开面板无需登录；只有链路和站点设置需要管理员身份。</p>
+          <h1 id="login-title" data-i18n="admin.loginTitle">登录</h1>
         </div>
         <form id="login-form" class="login-form">
           <label>
@@ -44,7 +42,7 @@
           <p id="login-error" class="form-error" hidden role="alert"></p>
           <button id="login-submit" class="manager-button primary login-submit" type="submit" data-i18n="admin.login">登录</button>
         </form>
-        <a class="back-home-link" href="/" data-i18n="admin.backHome">返回公开面板</a>
+        <a class="back-home-link" href="/" data-i18n="admin.backHome">返回</a>
       </section>
     </main>
 
@@ -70,6 +68,9 @@
             <svg class="submenu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </button>
           <div id="settings-submenu" class="admin-submenu">
+            <button class="admin-submenu-item" type="button" data-admin-view="general">
+              <span data-i18n="admin.general">通用</span>
+            </button>
             <button class="admin-submenu-item" type="button" data-admin-view="site">
               <span data-i18n="admin.site">站点</span>
             </button>
@@ -167,6 +168,76 @@
           </section>
         </section>
 
+        <section id="general-view" class="admin-view" data-admin-panel="general" hidden>
+          <div class="site-settings-heading">
+            <div>
+              <p class="admin-kicker" data-i18n="admin.settingsGeneral">设置 / 通用</p>
+              <h1 data-i18n="general.title">通用设置</h1>
+              <p data-i18n="general.descriptionHelp">选择公开面板的视觉主题、配色和自动日夜模式。</p>
+            </div>
+          </div>
+
+          <form id="general-settings-form" class="site-settings-form">
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="general.visualTheme">视觉主题</h2>
+                <p>
+                  <span data-i18n="general.visualThemeHelp">保留 TopoMari 原版，也可以切换到原生适配的毛玻璃主题。</span>
+                  <a href="https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism" target="_blank" rel="noreferrer" data-i18n="general.glassSource">查看主题来源</a>
+                </p>
+              </div>
+              <div class="theme-preset-grid" role="radiogroup" data-i18n-aria-label="general.visualTheme">
+                <label class="theme-preset-option" data-theme-preview="topomari">
+                  <input type="radio" name="visual-theme" value="topomari" />
+                  <span class="theme-preset-swatch" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span><strong data-i18n="general.themeTopomari">TopoMari 原版</strong><small data-i18n="general.themeTopomariHelp">温暖、克制的纸张质感。</small></span>
+                </label>
+                <label class="theme-preset-option" data-theme-preview="glassmorphism">
+                  <input type="radio" name="visual-theme" value="glassmorphism" />
+                  <span class="theme-preset-swatch" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span><strong data-i18n="general.themeGlass">Glassmorphism</strong><small data-i18n="general.themeGlassHelp">翡翠色强调、半透明卡片和柔和背景光。</small></span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="general.customColors">自定义配色</h2>
+                <p data-i18n="general.customColorsHelp">分别设置日间和夜间的背景色与强调色；保存后公开面板会立即使用。</p>
+              </div>
+              <div class="theme-color-settings">
+                <label class="settings-switch-row">
+                  <span><strong data-i18n="general.enableCustomColors">启用自定义配色</strong><small data-i18n="general.enableCustomColorsHelp">关闭时使用所选主题的内置颜色。</small></span>
+                  <input id="custom-theme-colors" type="checkbox" role="switch" />
+                </label>
+                <div id="theme-color-fields" class="theme-color-grid" hidden>
+                  <label><span data-i18n="general.lightBackground">日间背景</span><span class="color-field"><input id="theme-light-background" type="color" value="#eeede5" /><output for="theme-light-background">#eeede5</output></span></label>
+                  <label><span data-i18n="general.lightAccent">日间强调色</span><span class="color-field"><input id="theme-light-accent" type="color" value="#a7622d" /><output for="theme-light-accent">#a7622d</output></span></label>
+                  <label><span data-i18n="general.darkBackground">夜间背景</span><span class="color-field"><input id="theme-dark-background" type="color" value="#1c1b19" /><output for="theme-dark-background">#1c1b19</output></span></label>
+                  <label><span data-i18n="general.darkAccent">夜间强调色</span><span class="color-field"><input id="theme-dark-accent" type="color" value="#e4a35f" /><output for="theme-dark-accent">#e4a35f</output></span></label>
+                  <button id="theme-colors-reset" class="manager-button ghost theme-colors-reset" type="button" data-i18n="general.resetColors">恢复当前主题默认颜色</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-card">
+              <div class="settings-card-copy">
+                <h2 data-i18n="site.themeAutomation">主题自动切换</h2>
+                <p data-i18n="site.themeAutomationHelp">按北京地理坐标每日计算日出和日落，日出后使用日间模式，日落后使用夜间模式。</p>
+              </div>
+              <label class="settings-switch-row">
+                <span><strong data-i18n="site.autoBeijing">跟随北京时间日出 / 日落</strong><small data-i18n="site.autoBeijingHelp">手动切换会暂时生效，到下一次日出或日落时恢复自动。</small></span>
+                <input id="auto-theme-beijing" type="checkbox" role="switch" />
+              </label>
+            </section>
+
+            <div class="site-save-row">
+              <span id="general-save-status" class="deployment-status"></span>
+              <button id="general-save" class="manager-button primary" type="submit" data-i18n="general.save">保存通用设置</button>
+            </div>
+          </form>
+        </section>
+
         <section id="site-view" class="admin-view" data-admin-panel="site" hidden>
           <div class="site-settings-heading">
             <div>
@@ -204,17 +275,6 @@
                   <small id="favicon-status" data-i18n="site.faviconCurrent">当前使用默认图标</small>
                 </div>
               </div>
-            </section>
-
-            <section class="settings-card">
-              <div class="settings-card-copy">
-                <h2 data-i18n="site.themeAutomation">主题自动切换</h2>
-                <p data-i18n="site.themeAutomationHelp">按北京地理坐标每日计算日出和日落，日出后使用日间模式，日落后使用夜间模式。</p>
-              </div>
-              <label class="settings-switch-row">
-                <span><strong data-i18n="site.autoBeijing">跟随北京时间日出 / 日落</strong><small data-i18n="site.autoBeijingHelp">手动切换会暂时生效，到下一次日出或日落时恢复自动。</small></span>
-                <input id="auto-theme-beijing" type="checkbox" role="switch" />
-              </label>
             </section>
 
             <div class="site-save-row">

@@ -129,6 +129,9 @@ test("builds a complete demo dashboard from the shipped topology", async () => {
   assert.equal(dashboard.meta.mode, "demo");
   assert.equal(dashboard.meta.siteName, "TopoMari");
   assert.equal(dashboard.meta.mainTitle, "TopoMari");
+  assert.equal(dashboard.meta.visualTheme, "topomari");
+  assert.equal(dashboard.meta.customThemeColors, false);
+  assert.equal(dashboard.meta.themeColors.lightAccent, "#a7622d");
   assert.equal(dashboard.routes.length, 2);
   assert.equal(dashboard.summary.edges, 6);
   assert.ok(dashboard.routes.every((route) => route.edges.length === route.nodes.length - 1));

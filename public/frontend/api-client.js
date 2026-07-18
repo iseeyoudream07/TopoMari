@@ -75,10 +75,10 @@ export const adminApi = Object.freeze({
   site() {
     return requestJson(`/api/admin/site?t=${Date.now()}`);
   },
-  saveSite(siteName, description, autoThemeBeijing, revision, csrfToken) {
+  saveSite(settings, revision, csrfToken) {
     return requestJson("/api/admin/site", {
       method: "PUT",
-      body: { siteName, description, autoThemeBeijing, revision },
+      body: { ...settings, revision },
       csrfToken,
     });
   },

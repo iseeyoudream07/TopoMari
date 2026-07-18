@@ -1,6 +1,6 @@
 {
   "name": "topomari",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "private": true,
   "type": "module",
   "description": "TopoMari is a self-hosted Komari topology dashboard with authenticated private TCP probes and SQLite history.",
@@ -23,7 +23,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env server.mjs",
     "dev": "node --watch --env-file-if-exists=.env server.mjs",
-    "check": "node --check server.mjs && node --check lib/admin-session.mjs && node --check lib/komari-client.mjs && node --check lib/health-status.mjs && node --check lib/security-policy.mjs && node --check lib/topology-config.mjs && node --check lib/topology-config-store.mjs && node --check lib/topology-service.mjs && node --check lib/probe-store.mjs && node --check lib/probe-ingest.mjs && node --check lib/agent-registry.mjs && node --check scripts/agent-token.mjs && node --check scripts/bootstrap-agents.mjs && node --check scripts/recover-agent-registry.mjs && node --check scripts/public-audit.mjs && node --check public/app.js && node --check public/admin.js && node --check public/editor.js && node --check public/sparkline.js && node --check public/frontend/api-client.js && node --check public/frontend/i18n.js && node --check public/frontend/preference-bootstrap.js && node --check public/frontend/preferences.js && node --check public/frontend/solar-theme.js && python3 -c \"compile(open('public/agent/probe_agent.py', encoding='utf-8').read(), 'probe_agent.py', 'exec')\" && bash -n public/agent/install.sh && bash -n public/agent/update.sh && bash -n public/agent/uninstall.sh && bash -n scripts/install-dashboard-service.sh && bash -n scripts/update-dashboard.sh",
+    "check": "node --check server.mjs && node --check lib/admin-session.mjs && node --check lib/komari-client.mjs && node --check lib/health-status.mjs && node --check lib/security-policy.mjs && node --check lib/topology-config.mjs && node --check lib/topology-config-store.mjs && node --check lib/topology-service.mjs && node --check lib/probe-store.mjs && node --check lib/probe-ingest.mjs && node --check lib/agent-registry.mjs && node --check scripts/agent-token.mjs && node --check scripts/bootstrap-agents.mjs && node --check scripts/recover-agent-registry.mjs && node --check scripts/public-audit.mjs && node --check public/app.js && node --check public/admin.js && node --check public/editor.js && node --check public/sparkline.js && node --check public/frontend/api-client.js && node --check public/frontend/i18n.js && node --check public/frontend/preference-bootstrap.js && node --check public/frontend/preferences.js && node --check public/frontend/site-theme.js && node --check public/frontend/solar-theme.js && python3 -c \"compile(open('public/agent/probe_agent.py', encoding='utf-8').read(), 'probe_agent.py', 'exec')\" && bash -n public/agent/install.sh && bash -n public/agent/update.sh && bash -n public/agent/uninstall.sh && bash -n scripts/install-dashboard-service.sh && bash -n scripts/update-dashboard.sh",
     "audit:public": "node scripts/public-audit.mjs",
     "agents:bootstrap": "node --env-file-if-exists=.env scripts/bootstrap-agents.mjs",
     "agents:recover": "node --env-file-if-exists=.env scripts/recover-agent-registry.mjs",

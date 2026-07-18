@@ -1,5 +1,6 @@
 import { getLanguage, initI18n, setLanguage, t } from "./i18n.js";
 import { nextBeijingSolarTransition, themeForBeijingInstant } from "./solar-theme.js";
+import { syncSiteThemeColor } from "./site-theme.js";
 
 const THEME_KEY = "topomari-theme";
 const THEMES = new Set(["light", "dark"]);
@@ -56,8 +57,7 @@ function applyTheme(theme, { persist = false } = {}) {
   const resolved = THEMES.has(theme) ? theme : systemTheme();
   document.documentElement.dataset.theme = resolved;
   document.documentElement.style.colorScheme = resolved;
-  const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) themeColor.setAttribute("content", resolved === "dark" ? "#1c1b19" : "#eeede5");
+  syncSiteThemeColor();
   if (persist) {
     followsSystemTheme = false;
     try {

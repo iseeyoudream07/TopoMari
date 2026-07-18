@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.7.0 - 2026-07-18
+
+- Simplified the admin login heading and return link copy.
+- Added a Settings > General submenu with a native Glassmorphism preset, live preview, automatic day/night behavior, and validated custom light/dark colors.
+- Persisted visual theme settings in the existing topology configuration and exposed only sanitized palette fields to the public dashboard.
+- Added third-party attribution for the MIT-licensed Komari Glassmorphism palette and glass-surface ideas.
+
 ## 2.6.0 - 2026-07-18
 
 - Added a Komari-style admin console with session login, route management, and a Settings > Site submenu.

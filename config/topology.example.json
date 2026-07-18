@@ -3,6 +3,14 @@
   "title": "TopoMari",
   "description": "Multi-hop latency and packet-loss visibility",
   "auto_theme_beijing": false,
+  "visual_theme": "topomari",
+  "custom_theme_colors": false,
+  "theme_colors": {
+    "light_background": "#eeede5",
+    "light_accent": "#a7622d",
+    "dark_background": "#1c1b19",
+    "dark_accent": "#e4a35f"
+  },
   "subtitle": "Example multi-hop latency and packet-loss dashboard",
   "refresh_interval_seconds": 15,
   "history_hours": 1,
