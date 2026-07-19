@@ -1015,6 +1015,80 @@
   outline-offset: 3px;
 }
 
+.geoip-settings {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.geoip-settings > .settings-switch-row,
+.geoip-setting-row {
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--surface-inset) 86%, transparent);
+}
+
+.geoip-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.geoip-setting-row > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.geoip-setting-row strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.geoip-setting-row small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.geoip-provider-badge {
+  display: inline-flex;
+  min-height: 35px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--green) 24%, transparent);
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.geoip-provider-badge > span:first-child {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px var(--green-soft);
+}
+
+.geoip-update-row .manager-button {
+  flex: 0 0 auto;
+}
+
+:root[data-visual-theme="glassmorphism"] .geoip-settings > .settings-switch-row,
+:root[data-visual-theme="glassmorphism"] .geoip-setting-row {
+  border-color: color-mix(in srgb, var(--text) var(--site-glass-border-opacity), transparent);
+  background: color-mix(in srgb, var(--surface-solid) var(--site-glass-opacity), transparent);
+  -webkit-backdrop-filter: blur(var(--site-glass-blur)) saturate(135%);
+  backdrop-filter: blur(var(--site-glass-blur)) saturate(135%);
+}
+
 .site-save-row {
   display: flex;
   align-items: center;
@@ -1114,6 +1188,17 @@
 
   .settings-switch-row {
     align-items: flex-start;
+  }
+
+  .geoip-setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .geoip-provider-badge,
+  .geoip-update-row .manager-button {
+    align-self: stretch;
+    justify-content: center;
   }
 
   .site-save-row {

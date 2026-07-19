@@ -193,6 +193,56 @@ test("builds a live dashboard through the Komari client contract", async () => {
   assert.equal(JSON.stringify(dashboard).includes("198.51.100.80"), false);
 });
 
+test("adds only sanitized MaxMind country metadata to a live dashboard", async () => {
+  const config = {
+    title: "GeoIP test",
+    geo_ip_enabled: true,
+    refresh_interval_seconds: 10,
+    history_hours: 1,
+    routes: [
+      {
+        id: "geo-route",
+        name: "Geo route",
+        nodes: [
+          { id: "client", label: "Client", type: "client" },
+          { id: "geo-node", label: "Geo node", type: "server" },
+        ],
+        edges: [
+          { from: "client", to: "geo-node", source_uuid: "geo-node", task_id: 7 },
+        ],
+      },
+    ],
+  };
+  const fakeClient = {
+    async getNodes() {
+      return [{ uuid: "geo-node", name: "Geo node", status: "online", ipv4: "8.8.8.8" }];
+    },
+    async getPingTasks() {
+      return [{ id: 7, name: "Geo task", clients: ["geo-node"] }];
+    },
+    async getPingRecords() {
+      return { records: [{ task_id: 7, time: "2026-07-19T02:00:00Z", value: 18 }] };
+    },
+  };
+  const geoIpService = {
+    async resolveNodeLocations() {
+      return new Map([["geo-node", {
+        countryCode: "US",
+        countryName: "United States",
+        locationSource: "maxmind",
+        ip: "8.8.8.8",
+      }]]);
+    },
+  };
+
+  const dashboard = await buildLiveDashboard(fakeClient, config, { geoIpService });
+  const node = dashboard.routes[0].nodes[1];
+  assert.equal(node.countryCode, "US");
+  assert.equal(node.countryName, "United States");
+  assert.equal(node.locationSource, "maxmind");
+  assert.equal(JSON.stringify(dashboard).includes("8.8.8.8"), false);
+});
+
 test("loads all Komari ping records once for a multi-carrier edge", async () => {
   let allRecordRequests = 0;
   const config = {

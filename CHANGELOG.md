@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.8.2 - 2026-07-19
+
+- Moved the live data-source indicator into the header and removed the globe caption to match the compact reference layout.
+- Fixed light-mode globe contrast by separating its always-dark canvas palette from page theme colors.
+- Added privacy-preserving Komari API-key integration for MaxMind country positioning, with GeoIP enablement, status, and database updates under Settings → General.
+
 ## 2.8.1 - 2026-07-19
 
 - Rebuilt the dashboard overview as a compact six-metric cockpit with a lightweight header and responsive Glassmorphism cards.

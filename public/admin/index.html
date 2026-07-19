@@ -11,11 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.8.1-globe-overview"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.8.1-globe-overview" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.1-globe-overview" />
-    <link rel="stylesheet" href="/admin.css?v=2.8.1-globe-overview" />
-    <script type="module" src="/admin.js?v=2.8.1-globe-overview"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.2-komari-geoip"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.2-komari-geoip" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.2-komari-geoip" />
+    <link rel="stylesheet" href="/admin.css?v=2.8.2-komari-geoip" />
+    <script type="module" src="/admin.js?v=2.8.2-komari-geoip"></script>
   </head>
   <body class="admin-body">
     <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
@@ -186,7 +186,7 @@
             <div>
               <p class="admin-kicker" data-i18n="admin.settingsGeneral">设置 / 通用</p>
               <h1 data-i18n="general.title">通用设置</h1>
-              <p data-i18n="general.descriptionHelp">选择公开面板的视觉主题、配色和自动日夜模式。</p>
+              <p data-i18n="general.descriptionHelp">配置公开面板的视觉主题、自动日夜模式和 GeoIP 定位。</p>
             </div>
           </div>
 
@@ -242,6 +242,27 @@
                 <span><strong data-i18n="site.autoBeijing">跟随北京时间日出 / 日落</strong><small data-i18n="site.autoBeijingHelp">手动切换会暂时生效，到下一次日出或日落时恢复自动。</small></span>
                 <input id="auto-theme-beijing" type="checkbox" role="switch" />
               </label>
+            </section>
+
+            <section class="settings-card geoip-settings-card" aria-labelledby="geoip-settings-title">
+              <div class="settings-card-copy">
+                <h2 id="geoip-settings-title" data-i18n="geoIp.title">GeoIP 数据库</h2>
+                <p data-i18n="geoIp.help">通过 Komari API 密钥读取节点 IP，并使用 MaxMind 国家数据库定位；IP 和密钥只在服务端处理，不会发送到公开面板。</p>
+              </div>
+              <div class="geoip-settings">
+                <label class="settings-switch-row">
+                  <span><strong data-i18n="geoIp.enabled">启用地理位置信息</strong><small data-i18n="geoIp.enabledHelp">在地球视图中按节点所在国家定位；没有结果时继续使用节点名称推断。</small></span>
+                  <input id="geoip-enabled" type="checkbox" role="switch" />
+                </label>
+                <div class="geoip-setting-row">
+                  <span><strong data-i18n="geoIp.provider">地理位置数据提供商</strong><small data-i18n="geoIp.providerHelp">TopoMari 通过 Komari 的本地 GeoLite2 Country 数据库查询。</small></span>
+                  <span class="geoip-provider-badge"><span aria-hidden="true"></span><span data-i18n="geoIp.providerName">MaxMind</span></span>
+                </div>
+                <div class="geoip-setting-row geoip-update-row">
+                  <span><strong data-i18n="geoIp.updateTitle">更新 GeoIP 数据库</strong><small id="geoip-status" role="status" data-i18n="geoIp.statusChecking">正在检查 Komari GeoIP 状态…</small></span>
+                  <button id="geoip-update" class="manager-button" type="button" data-i18n="geoIp.update">更新</button>
+                </div>
+              </div>
             </section>
 
             <div class="site-save-row">

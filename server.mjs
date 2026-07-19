@@ -10,6 +10,7 @@ import {
   serializeSessionCookie,
 } from "./lib/admin-session.mjs";
 import { KomariClient, KomariError } from "./lib/komari-client.mjs";
+import { KomariGeoIpService } from "./lib/komari-geoip.mjs";
 import { AgentRegistry } from "./lib/agent-registry.mjs";
 import { ProbeRateLimiter, ProbeValidationError, normalizeProbePayload } from "./lib/probe-ingest.mjs";
 import { ProbeStore } from "./lib/probe-store.mjs";
@@ -53,8 +54,10 @@ const client = new KomariClient({
   baseUrl: process.env.KOMARI_BASE_URL || "",
   cookie: process.env.KOMARI_COOKIE || "",
   authorization: process.env.KOMARI_AUTHORIZATION || "",
+  apiKey: process.env.KOMARI_API_KEY || "",
   timeoutMs: Number(process.env.KOMARI_TIMEOUT_MS || 8000),
 });
+const geoIpService = new KomariGeoIpService({ client });
 const forceDemo = envFlag("DEMO_MODE");
 const demoMode = forceDemo || !client.configured;
 const basicAuthConfigured = validateDashboardAuthConfig({
@@ -201,7 +204,7 @@ async function getDashboard() {
     const config = await loadTopologyConfig(configPath);
     const dashboard = demoMode
       ? buildDemoDashboard(config)
-      : await buildLiveDashboard(client, config, { probeStore });
+      : await buildLiveDashboard(client, config, { probeStore, geoIpService });
     dashboardCache = { value: dashboard, expiresAt: Date.now() + cacheTtlMs, promise: null };
     return dashboard;
   })().catch((error) => {
@@ -447,9 +450,9 @@ async function faviconState() {
   }
 }
 
-async function siteSettingsPayload({ csrfToken = "" } = {}) {
+async function siteSettingsPayload({ csrfToken = "", includeGeoIpStatus = true } = {}) {
   const { config, revision } = await topologyConfigStore.read();
-  return {
+  const payload = {
     ...sanitizeSiteSettings(config),
     ...await faviconState(),
     backgroundAssets: await themeBackgroundState(),
@@ -457,10 +460,12 @@ async function siteSettingsPayload({ csrfToken = "" } = {}) {
     revision,
     csrfToken,
   };
+  if (includeGeoIpStatus) payload.geoIpStatus = await geoIpService.status();
+  return payload;
 }
 
 async function publicSiteSettingsPayload() {
-  const site = await siteSettingsPayload();
+  const site = await siteSettingsPayload({ includeGeoIpStatus: false });
   return {
     siteName: site.siteName,
     description: site.description,
@@ -584,6 +589,7 @@ async function handleAdminApi(request, response, url, principal) {
     if (!requireJsonContent(request, response)) return;
     const body = await readJsonBody(request, maxEditorBodyBytes);
     const current = await topologyConfigStore.read();
+    const currentSite = sanitizeSiteSettings(current.config);
     const requestedVisualTheme = sanitizeSiteSettings({ ...current.config, ...body }).visualTheme;
     const mergedThemeSettings = requestedVisualTheme === "glassmorphism"
       ? {
@@ -592,6 +598,7 @@ async function handleAdminApi(request, response, url, principal) {
           ...(body.themeSettings || {}),
         }
       : { ...(current.config.theme_settings || {}) };
+    const requestedGeoIp = body.geoIp ?? body.geo_ip ?? {};
     const site = sanitizeSiteSettings({
       ...current.config,
       ...body,
@@ -614,6 +621,17 @@ async function handleAdminApi(request, response, url, principal) {
           ?? current.config.theme_colors?.dark_accent,
       },
       themeSettings: mergedThemeSettings,
+      geoIp: {
+        enabled: requestedGeoIp.enabled === undefined
+          ? body.geoIpEnabled === undefined
+            ? body.geo_ip_enabled === undefined
+              ? currentSite.geoIp.enabled
+              : body.geo_ip_enabled === true
+            : body.geoIpEnabled === true
+          : requestedGeoIp.enabled === true,
+        provider: "maxmind",
+        lastUpdatedAt: currentSite.geoIp.lastUpdatedAt,
+      },
     });
     const result = await topologyConfigStore.write({
       ...current.config,
@@ -641,15 +659,38 @@ async function handleAdminApi(request, response, url, principal) {
         glass_border: site.themeSettings.glassBorder,
         corner_radius: site.themeSettings.cornerRadius,
       },
+      geo_ip_enabled: site.geoIp.enabled,
+      geo_ip_provider: "maxmind",
+      geo_ip_last_updated_at: currentSite.geoIp.lastUpdatedAt,
     }, String(body.revision || ""));
     dashboardCache = { expiresAt: 0, value: null, promise: null };
     return json(response, 200, {
       ...site,
+      geoIpStatus: await geoIpService.status(),
       ...await faviconState(),
       backgroundAssets: await themeBackgroundState(),
       faviconUrl: "/favicon",
       revision: result.revision,
       csrfToken: principal.csrfToken,
+    });
+  }
+
+  if (url.pathname === "/api/admin/geoip/update") {
+    if (request.method !== "POST") return methodNotAllowed(response, ["POST"]);
+    if (!requireEditorCsrf(request, response, principal)) return;
+    await geoIpService.updateDatabase();
+    const updatedAt = new Date().toISOString();
+    const current = await topologyConfigStore.read();
+    await topologyConfigStore.write({
+      ...current.config,
+      geo_ip_provider: "maxmind",
+      geo_ip_last_updated_at: updatedAt,
+    }, current.revision);
+    await geoIpService.resolveNodeLocations().catch(() => new Map());
+    dashboardCache = { expiresAt: 0, value: null, promise: null };
+    return json(response, 200, {
+      ...await siteSettingsPayload({ csrfToken: principal.csrfToken }),
+      updated: true,
     });
   }
 

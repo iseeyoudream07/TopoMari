@@ -1,5 +1,5 @@
 import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js";
-import { t } from "./frontend/i18n.js";
+import { getLocale, t } from "./frontend/i18n.js";
 import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
 import {
   applySiteTheme,
@@ -76,6 +76,9 @@ const elements = {
   siteDescription: document.getElementById("site-description-input"),
   descriptionCount: document.getElementById("description-count"),
   autoTheme: document.getElementById("auto-theme-beijing"),
+  geoIpEnabled: document.getElementById("geoip-enabled"),
+  geoIpUpdate: document.getElementById("geoip-update"),
+  geoIpStatus: document.getElementById("geoip-status"),
   siteSave: document.getElementById("site-save"),
   siteSaveStatus: document.getElementById("site-save-status"),
   faviconFile: document.getElementById("favicon-file"),
@@ -243,6 +246,36 @@ function previewGeneralTheme() {
   applyThemeSettings(themeSettingsDraft());
 }
 
+function geoIpStatusText(site) {
+  const status = site?.geoIpStatus || {};
+  if (!status.komariConfigured) return t("geoIp.statusKomariMissing");
+  if (!status.apiKeyConfigured) return t("geoIp.statusApiKeyMissing");
+  if (status.error === "api-key-rejected") return t("geoIp.statusApiKeyRejected");
+  if (status.error === "api-unsupported") return t("geoIp.statusUnsupported");
+  if (status.error === "komari-unavailable") return t("geoIp.statusUnavailable");
+  if (!status.ready) return t("geoIp.statusNeedsUpdate");
+
+  const updatedAt = site?.geoIp?.lastUpdatedAt;
+  if (updatedAt && Number.isFinite(Date.parse(updatedAt))) {
+    const date = new Intl.DateTimeFormat(getLocale(), {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(updatedAt));
+    return t("geoIp.statusLastUpdated", { date });
+  }
+  if (Number(status.locatedNodes) > 0) {
+    return t("geoIp.statusReadyWithNodes", { count: status.locatedNodes });
+  }
+  return t("geoIp.statusReady");
+}
+
+function updateGeoIpStatus(site = siteState) {
+  if (!elements.geoIpStatus || !elements.geoIpUpdate) return;
+  elements.geoIpStatus.textContent = geoIpStatusText(site);
+  const status = site?.geoIpStatus || {};
+  elements.geoIpUpdate.disabled = !status.komariConfigured || !status.apiKeyConfigured;
+}
+
 function fillGeneralForm(site) {
   const settings = normalizeVisualThemeSettings(site);
   document.querySelectorAll('input[name="visual-theme"]').forEach((input) => {
@@ -251,6 +284,8 @@ function fillGeneralForm(site) {
   elements.customThemeColors.checked = settings.customThemeColors;
   setThemeColorInputs(settings.themeColors);
   elements.themeColorFields.hidden = !settings.customThemeColors;
+  elements.geoIpEnabled.checked = site.geoIp?.enabled === true;
+  updateGeoIpStatus(site);
   elements.generalSaveStatus.textContent = "";
 }
 
@@ -341,6 +376,7 @@ function siteSavePayload({
   autoThemeBeijing = siteState.autoThemeBeijing,
   visualSettings = normalizeVisualThemeSettings(siteState),
   themeSettings = normalizeThemeSettings(siteState),
+  geoIp = { enabled: siteState.geoIp?.enabled === true },
 } = {}) {
   return {
     siteName,
@@ -348,6 +384,7 @@ function siteSavePayload({
     autoThemeBeijing,
     ...visualSettings,
     themeSettings,
+    geoIp,
   };
 }
 
@@ -611,6 +648,7 @@ elements.generalForm.addEventListener("submit", async (event) => {
     const site = await adminApi.saveSite(siteSavePayload({
       autoThemeBeijing: elements.autoTheme.checked,
       visualSettings: generalThemeDraft(),
+      geoIp: { enabled: elements.geoIpEnabled.checked },
     }), siteState.revision, session.csrfToken);
     fillSiteForm(site);
     editorController?.syncSiteSettings?.(site, site.revision);
@@ -623,6 +661,32 @@ elements.generalForm.addEventListener("submit", async (event) => {
     if (error.status === 409) await loadSiteSettings();
   } finally {
     elements.generalSave.disabled = false;
+  }
+});
+
+elements.geoIpUpdate.addEventListener("click", async () => {
+  const enabledDraft = elements.geoIpEnabled.checked;
+  let updateFailed = false;
+  elements.geoIpUpdate.disabled = true;
+  elements.geoIpStatus.textContent = t("geoIp.updating");
+  try {
+    const site = await adminApi.updateGeoIp(session.csrfToken);
+    fillSiteForm(site);
+    elements.geoIpEnabled.checked = enabledDraft;
+    editorController?.syncSiteSettings?.(site, site.revision);
+    showNotice(t("geoIp.updated"));
+  } catch (error) {
+    updateFailed = true;
+    if (await handleUnauthorized(error)) return;
+    elements.geoIpStatus.textContent = error.message;
+    showNotice(error.message, "error");
+  } finally {
+    if (updateFailed) {
+      const status = siteState?.geoIpStatus || {};
+      elements.geoIpUpdate.disabled = !status.komariConfigured || !status.apiKeyConfigured;
+    } else {
+      updateGeoIpStatus(siteState);
+    }
   }
 });
 
@@ -691,6 +755,7 @@ document.addEventListener("topomari:languagechange", () => {
   activateView(selectedView(), { updateHash: false });
   updateFaviconStatus();
   updateThemeAssetStatus();
+  updateGeoIpStatus();
   if (siteState) updateSiteIdentity(siteState, { syncVisualTheme: false });
 });
 

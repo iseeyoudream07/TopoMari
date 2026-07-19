@@ -1736,7 +1736,7 @@ h2 {
   }
 }
 
-/* 2.8.1 cockpit overview: structural layout only; theme surfaces live in theme.css. */
+/* 2.8.2 cockpit overview: structural layout only; theme surfaces live in theme.css. */
 .overview-stage {
   position: relative;
   margin-bottom: 22px;
@@ -1754,6 +1754,22 @@ h2 {
   flex: 0 0 auto;
   flex-wrap: nowrap;
   justify-content: flex-end;
+}
+
+.overview-stage .header-actions > .source-chip {
+  width: auto;
+  max-width: min(250px, 42vw);
+  margin: 0;
+  overflow: hidden;
+  flex: 0 1 auto;
+  justify-content: flex-start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-stage .header-actions > .source-chip span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .overview-content {
@@ -1867,25 +1883,9 @@ h2 {
   left: 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   pointer-events: none;
-}
-
-.route-globe .source-chip {
-  display: inline-flex;
-  width: auto;
-  max-width: min(58%, 230px);
-  margin: 0;
-  overflow: hidden;
-  justify-content: flex-start;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.route-globe .source-chip span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .route-globe-counts,
@@ -1918,27 +1918,6 @@ h2 {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-}
-
-.route-globe-caption {
-  position: absolute;
-  z-index: 2;
-  right: 14px;
-  bottom: 13px;
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-  pointer-events: none;
-  text-align: right;
-}
-
-.route-globe-caption strong {
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-
-.route-globe-caption span {
-  font-size: 10px;
 }
 
 @media (max-width: 1120px) {
@@ -2003,9 +1982,6 @@ h2 {
     height: 292px;
   }
 
-  .route-globe-caption {
-    display: none;
-  }
 }
 
 @media (max-width: 390px) {
@@ -2024,5 +2000,14 @@ h2 {
 
   .route-globe-counts span span {
     display: none;
+  }
+}
+
+@media (max-width: 510px) {
+  .overview-stage .header-actions > .source-chip {
+    max-width: 132px;
+    min-height: 34px;
+    padding-inline: 9px;
+    font-size: 11px;
   }
 }

@@ -116,6 +116,8 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(adminHtml, /id="site-description-input"/);
   assert.match(adminHtml, /id="favicon-file"/);
   assert.match(adminHtml, /id="auto-theme-beijing"/);
+  assert.match(adminHtml, /id="geoip-enabled"/);
+  assert.match(adminHtml, /id="geoip-update"/);
   assert.match(adminHtml, /data-admin-view="general"/);
   assert.match(adminHtml, /name="visual-theme" value="glassmorphism"/);
   assert.match(adminHtml, /id="custom-theme-colors"/);
@@ -132,11 +134,13 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(app, /applySiteTheme\(meta\)/);
   assert.match(app, /applyThemeSettings\(meta\)/);
   assert.match(api, /saveSite\(settings, revision, csrfToken\)/);
+  assert.match(api, /updateGeoIp\(csrfToken\)/);
   assert.match(siteTheme, /VISUAL_THEME_DEFAULTS/);
   assert.match(themeBackground, /theme-background\/\$\{mode\}/);
   assert.match(server, /\/api\/admin\/site/);
   assert.match(api, /\/api\/admin\/theme\/background/);
   assert.match(server, /sanitizeSiteSettings/);
+  assert.match(server, /\/api\/admin\/geoip\/update/);
 });
 
 test("keeps the admin login page concise", async () => {
@@ -216,6 +220,8 @@ test("ships the compact route-globe overview and Glassmorphism-only detail contr
   assert.match(app, /routeGlobe\?\.update\(routes \|\| \[\]\)/);
   assert.match(globe, /buildRouteLinks/);
   assert.match(globe, /requestAnimationFrame/);
+  assert.match(globe, /--globe-text/);
+  assert.match(globe, /node\?\.countryCode/);
   assert.doesNotMatch(globe, /\bfetch\s*\(/);
   assert.match(adminHtml, /id="theme-settings-lock"/);
   assert.match(adminHtml, /id="theme-settings-controls"/);
@@ -238,12 +244,14 @@ test("keeps the public dashboard concise and moves management into the admin pag
   assert.doesNotMatch(html, /data-language-value=/);
   assert.match(html, /id="last-updated"/);
   assert.match(html, /id="source-chip"/);
-  assert.match(html, /Komari \+ 私有探针/);
+  assert.match(html, /class="header-actions"[\s\S]*id="source-chip"[\s\S]*id="theme-toggle"/);
+  assert.doesNotMatch(html, /route-globe-caption/);
   assert.match(html, /href="\/admin"/);
   assert.match(adminHtml, /data-admin-view="routes"/);
   assert.match(adminHtml, /data-admin-view="theme"/);
   assert.match(adminHtml, /id="settings-toggle"/);
   assert.match(adminHtml, /data-admin-panel="general"/);
+  assert.match(adminHtml, /data-admin-panel="general"[\s\S]*id="geoip-settings-title"/);
   assert.match(adminHtml, /data-admin-view="site"/);
   assert.match(adminHtml, /data-i18n="deploy\.help"/);
   assert.match(adminStyles, /\.admin-callout\[hidden\]\s*\{\s*display:\s*none/s);

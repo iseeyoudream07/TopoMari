@@ -18,6 +18,11 @@ test("resolves explicit and region-derived globe coordinates", () => {
     lng: -118.2437,
     code: "US",
   });
+  assert.deepEqual(resolveNodeLocation({ id: "maxmind-node", countryCode: "IN", countryName: "India" }), {
+    lat: 20.5937,
+    lng: 78.9629,
+    code: "IN",
+  });
 });
 
 test("keeps unknown node placement deterministic", () => {

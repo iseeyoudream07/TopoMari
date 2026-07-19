@@ -36,3 +36,53 @@ test("retries Komari PostgreSQL ping queries without task_id", async (context) =
   assert.match(urls[0], /task_id=1/);
   assert.doesNotMatch(urls[1], /task_id=/);
 });
+
+test("uses the Komari API key for admin GeoIP calls and sanitizes node inventory", async (context) => {
+  const originalFetch = globalThis.fetch;
+  context.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const requests = [];
+  globalThis.fetch = async (url, options = {}) => {
+    requests.push({ url: String(url), options });
+    const pathname = new URL(url).pathname;
+    if (pathname === "/api/admin/client/list") {
+      return new Response(JSON.stringify([
+        { uuid: "node-a", ipv4: "8.8.8.8", ipv6: "", token: "upstream-node-token" },
+      ]), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (pathname === "/api/admin/settings/") {
+      return new Response(JSON.stringify({
+        status: "success",
+        data: { geo_ip_enabled: true, geo_ip_provider: "mmdb", api_key: "upstream-api-key" },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    return new Response(JSON.stringify({ status: "success" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  const client = new KomariClient({
+    baseUrl: "https://status.example.com/",
+    apiKey: "test-admin-key",
+  });
+  const inventory = await client.getNodeIpInventory();
+  const settings = await client.getGeoIpSettings();
+  await client.configureMaxMindGeoIp({ forceReload: true });
+  await client.updateGeoIpDatabase();
+
+  assert.deepEqual(inventory, [{ id: "node-a", ipv4: "8.8.8.8", ipv6: "" }]);
+  assert.deepEqual(settings, { enabled: true, provider: "mmdb" });
+  assert.equal(JSON.stringify(inventory).includes("upstream-node-token"), false);
+  assert.ok(requests.every((request) => request.options.headers.Authorization === "Bearer test-admin-key"));
+  const settingsUpdates = requests.filter((request) => request.options.method === "POST" && request.url.endsWith("/api/admin/settings/"));
+  assert.deepEqual(settingsUpdates.map((request) => JSON.parse(request.options.body)), [{
+    geo_ip_enabled: true,
+    geo_ip_provider: "empty",
+  }, {
+    geo_ip_enabled: true,
+    geo_ip_provider: "mmdb",
+  }]);
+  assert.ok(requests.some((request) => request.url.endsWith("/api/admin/update/mmdb")));
+});

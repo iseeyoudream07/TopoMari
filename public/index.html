@@ -12,10 +12,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.8.1-globe-overview"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.8.1-globe-overview" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.1-globe-overview" />
-    <script type="module" src="/app.js?v=2.8.1-globe-overview"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.2-komari-geoip"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.2-komari-geoip" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.2-komari-geoip" />
+    <script type="module" src="/app.js?v=2.8.2-komari-geoip"></script>
   </head>
   <body>
     <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
@@ -39,20 +39,24 @@
           </div>
 
           <div class="header-actions">
-          <button id="theme-toggle" class="utility-button theme-toggle" type="button" aria-label="切换至夜间模式">
-            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-            </svg>
-            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" />
-            </svg>
-          </button>
-          <a class="utility-button theme-toggle admin-entry" href="/admin" data-i18n-aria-label="admin.enter" aria-label="进入后台" data-i18n-title="admin.enter" title="进入后台">
-            <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
-            </svg>
-          </a>
+            <div id="source-chip" class="source-chip" data-mode="loading" aria-live="polite">
+              <span class="source-dot" aria-hidden="true"></span>
+              <span id="source-label" data-i18n="source.connecting">正在连接</span>
+            </div>
+            <button id="theme-toggle" class="utility-button theme-toggle" type="button" aria-label="切换至夜间模式">
+              <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+              </svg>
+              <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z" />
+              </svg>
+            </button>
+            <a class="utility-button theme-toggle admin-entry" href="/admin" data-i18n-aria-label="admin.enter" aria-label="进入后台" data-i18n-title="admin.enter" title="进入后台">
+              <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
+              </svg>
+            </a>
           </div>
         </header>
 
@@ -102,22 +106,14 @@
             </article>
           </section>
 
-          <figure class="route-globe" aria-labelledby="route-globe-title">
+          <figure class="route-globe" aria-label="实时链路传输" data-i18n-aria-label="globe.title">
             <canvas id="route-globe-canvas" role="img" aria-label="地球链路传输动画" data-i18n-aria-label="globe.aria">当前浏览器不支持链路地球动画。</canvas>
             <div class="route-globe-topline">
-              <div id="source-chip" class="source-chip" data-mode="loading">
-                <span class="source-dot" aria-hidden="true"></span>
-                <span id="source-label" data-i18n="source.hybrid">Komari + 私有探针</span>
-              </div>
               <div class="route-globe-counts" aria-live="polite">
                 <span><i class="route-globe-live-dot" aria-hidden="true"></i><strong id="route-globe-node-count">0</strong><span data-i18n="globe.nodes">节点</span></span>
                 <span><strong id="route-globe-link-count">0</strong><span data-i18n="globe.links">链路</span></span>
               </div>
             </div>
-            <figcaption class="route-globe-caption">
-              <strong id="route-globe-title" data-i18n="globe.title">实时链路传输</strong>
-              <span data-i18n="globe.subtitle">光点沿当前拓扑方向流动</span>
-            </figcaption>
           </figure>
         </div>
       </section>

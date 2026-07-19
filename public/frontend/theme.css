@@ -42,6 +42,16 @@
   --shadow-soft: 0 8px 24px rgba(60, 55, 44, 0.055);
   --ambient-a: rgba(167, 98, 45, 0.24);
   --ambient-b: rgba(71, 127, 145, 0.18);
+  /* The canvas globe remains dark in both page modes, so it needs its own contrast-safe palette. */
+  --globe-text: #f8fafc;
+  --globe-muted: #91a6ba;
+  --globe-cyan: #38bdf8;
+  --globe-green: #34d399;
+  --globe-amber: #fbbf24;
+  --globe-rose: #fb7185;
+  --globe-unknown: #94a3b8;
+  --globe-label-bg: rgba(4, 10, 20, 0.9);
+  --globe-label-border: rgba(148, 210, 236, 0.32);
   --site-glass-blur: 18px;
   --site-glass-opacity: 78%;
   --site-glass-border-opacity: 18%;
@@ -1185,7 +1195,7 @@ h2 {
   }
 }
 
-/* 2.8.1 cockpit overview visual layer. */
+/* 2.8.2 cockpit overview visual layer. */
 .overview-stage .app-header {
   margin-bottom: 14px;
   padding: 9px 2px 16px;
@@ -1263,7 +1273,6 @@ h2 {
 }
 
 .overview-stage .stat-unit,
-.route-globe-caption span,
 .route-globe-counts span span {
   color: var(--muted);
 }
@@ -1277,7 +1286,6 @@ h2 {
   filter: blur(24px);
 }
 
-.route-globe .source-chip,
 .route-globe-counts > span {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1288,19 +1296,9 @@ h2 {
   backdrop-filter: blur(10px);
 }
 
-.route-globe .source-chip {
-  min-height: 30px;
-  padding-inline: 10px;
-  font-size: 11px;
-}
-
 .route-globe-live-dot {
   background: var(--green);
   box-shadow: 0 0 0 4px var(--green-soft), 0 0 12px color-mix(in srgb, var(--green) 62%, transparent);
-}
-
-.route-globe-caption strong {
-  color: var(--text);
 }
 
 :root[data-visual-theme="glassmorphism"] .overview-stage .app-header {
@@ -1333,7 +1331,6 @@ h2 {
   background: radial-gradient(circle, color-mix(in srgb, var(--cyan) 18%, transparent), transparent 67%);
 }
 
-:root[data-visual-theme="glassmorphism"] .route-globe .source-chip,
 :root[data-visual-theme="glassmorphism"] .route-globe-counts > span {
   border-color: color-mix(in srgb, var(--text) var(--site-glass-border-opacity), transparent);
   background: color-mix(in srgb, var(--surface-inset) 72%, transparent);

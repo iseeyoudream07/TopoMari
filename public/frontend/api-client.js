@@ -102,6 +102,13 @@ export const adminApi = Object.freeze({
       csrfToken,
     });
   },
+  updateGeoIp(csrfToken) {
+    return requestJson("/api/admin/geoip/update", {
+      method: "POST",
+      body: {},
+      csrfToken,
+    });
+  },
   uploadFavicon(file, csrfToken) {
     return requestFavicon(file, csrfToken);
   },

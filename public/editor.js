@@ -754,6 +754,9 @@ function syncSiteSettings(site, nextRevision) {
     glass_border: site.themeSettings?.glassBorder ?? 18,
     corner_radius: site.themeSettings?.cornerRadius ?? 18,
   };
+  draft.geo_ip_enabled = site.geoIp?.enabled === true;
+  draft.geo_ip_provider = "maxmind";
+  draft.geo_ip_last_updated_at = site.geoIp?.lastUpdatedAt || "";
   if (nextRevision) revision = nextRevision;
   if (bootstrap?.config) bootstrap.config = clone(draft);
 }
