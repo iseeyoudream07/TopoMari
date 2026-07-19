@@ -42,34 +42,114 @@ const REGION_LOCATIONS = [
 ];
 
 const COUNTRY_LOCATIONS = {
+  AR: [-38.4161, -63.6167],
+  AT: [47.5162, 14.5501],
   JP: [36.2048, 138.2529],
   SG: [1.3521, 103.8198],
   HK: [22.3193, 114.1694],
+  MO: [22.1987, 113.5439],
   TW: [23.6978, 120.9605],
   KR: [35.9078, 127.7669],
   CN: [35.8617, 104.1954],
+  BD: [23.685, 90.3563],
+  BN: [4.5353, 114.7277],
+  ID: [-0.7893, 113.9213],
+  KH: [12.5657, 104.991],
+  KZ: [48.0196, 66.9237],
+  LA: [19.8563, 102.4955],
+  LK: [7.8731, 80.7718],
+  MM: [21.9162, 95.956],
+  MN: [46.8625, 103.8467],
+  MY: [4.2105, 101.9758],
+  NP: [28.3949, 84.124],
+  PH: [12.8797, 121.774],
+  PK: [30.3753, 69.3451],
+  TH: [15.87, 100.9925],
+  UZ: [41.3775, 64.5853],
+  VN: [14.0583, 108.2772],
   AU: [-25.2744, 133.7751],
   NZ: [-40.9006, 174.886],
   US: [39.8283, -98.5795],
+  PR: [18.2208, -66.5901],
   CA: [56.1304, -106.3468],
   MX: [23.6345, -102.5528],
+  CR: [9.7489, -83.7534],
+  DO: [18.7357, -70.1627],
+  GT: [15.7835, -90.2308],
+  HN: [15.2, -86.2419],
+  JM: [18.1096, -77.2975],
+  NI: [12.8654, -85.2072],
+  PA: [8.538, -80.7821],
+  SV: [13.7942, -88.8965],
+  TT: [10.6918, -61.2225],
   GB: [55.3781, -3.436],
   UK: [55.3781, -3.436],
+  BE: [50.5039, 4.4699],
+  BG: [42.7339, 25.4858],
+  CZ: [49.8175, 15.473],
   DE: [51.1657, 10.4515],
+  DK: [56.2639, 9.5018],
+  EE: [58.5953, 25.0136],
   NL: [52.1326, 5.2913],
   FR: [46.2276, 2.2137],
   ES: [40.4637, -3.7492],
+  GR: [39.0742, 21.8243],
+  HR: [45.1, 15.2],
+  HU: [47.1625, 19.5033],
+  IE: [53.1424, -7.6921],
+  IS: [64.9631, -19.0208],
   IT: [41.8719, 12.5674],
   CH: [46.8182, 8.2275],
+  CY: [35.1264, 33.4299],
+  LT: [55.1694, 23.8813],
+  LU: [49.8153, 6.1296],
+  LV: [56.8796, 24.6032],
   SE: [60.1282, 18.6435],
   NO: [60.472, 8.4689],
   FI: [61.9241, 25.7482],
   PL: [51.9194, 19.1451],
+  PT: [39.3999, -8.2245],
+  RO: [45.9432, 24.9668],
+  RS: [44.0165, 21.0059],
+  SI: [46.1512, 14.9955],
+  SK: [48.669, 19.699],
+  UA: [48.3794, 31.1656],
   RU: [61.524, 105.3188],
   TR: [38.9637, 35.2433],
   AE: [23.4241, 53.8478],
+  AM: [40.0691, 45.0382],
+  AZ: [40.1431, 47.5769],
+  BH: [26.0667, 50.5577],
+  GE: [42.3154, 43.3569],
+  IL: [31.0461, 34.8516],
+  KW: [29.3117, 47.4818],
+  OM: [21.4735, 55.9754],
+  QA: [25.3548, 51.1839],
+  SA: [23.8859, 45.0792],
   IN: [20.5937, 78.9629],
+  DZ: [28.0339, 1.6596],
+  EG: [26.8206, 30.8025],
+  ET: [9.145, 40.4897],
+  GH: [7.9465, -1.0232],
+  KE: [-0.0236, 37.9062],
+  MA: [31.7917, -7.0926],
+  NG: [9.082, 8.6753],
+  SN: [14.4974, -14.4524],
+  TN: [33.8869, 9.5375],
+  TZ: [-6.369, 34.8888],
+  UG: [1.3733, 32.2903],
+  ZA: [-30.5595, 22.9375],
   BR: [-14.235, -51.9253],
+  BO: [-16.2902, -63.5887],
+  CL: [-35.6751, -71.543],
+  CO: [4.5709, -74.2973],
+  EC: [-1.8312, -78.1834],
+  GY: [4.8604, -58.9302],
+  PE: [-9.19, -75.0152],
+  PY: [-23.4425, -58.4438],
+  SR: [3.9193, -56.0278],
+  UY: [-32.5228, -55.7658],
+  VE: [6.4238, -66.5897],
 };
 
 const FALLBACK_LOCATIONS = [
@@ -143,7 +223,13 @@ export function resolveNodeLocation(node, fallbackKey = "") {
   const explicit = explicitLocation(node);
   if (explicit) return explicit;
 
-  const searchable = [node?.region, node?.name, node?.label, node?.id].filter(Boolean).join(" ");
+  const geoCountryCode = String(node?.countryCode ?? node?.country_code ?? "").trim().toUpperCase();
+  if (COUNTRY_LOCATIONS[geoCountryCode]) {
+    const [lat, lng] = COUNTRY_LOCATIONS[geoCountryCode];
+    return { lat, lng, code: geoCountryCode === "UK" ? "GB" : geoCountryCode };
+  }
+
+  const searchable = [node?.countryName, node?.region, node?.name, node?.label, node?.id].filter(Boolean).join(" ");
   const city = REGION_LOCATIONS.find((location) => location.pattern.test(searchable));
   if (city) return { lat: city.lat, lng: city.lng, code: city.code };
 
@@ -243,14 +329,15 @@ function readPalette(canvas) {
   const styles = getComputedStyle(canvas);
   const value = (name, fallback) => styles.getPropertyValue(name).trim() || fallback;
   return {
-    text: value("--text", "#f8fafc"),
-    muted: value("--muted", "#94a3b8"),
-    cyan: value("--cyan", "#38bdf8"),
-    green: value("--green", "#34d399"),
-    amber: value("--amber", "#fbbf24"),
-    rose: value("--rose", "#fb7185"),
-    unknown: value("--unknown", "#94a3b8"),
-    surface: value("--surface-inset", "#080d18"),
+    text: value("--globe-text", "#f8fafc"),
+    muted: value("--globe-muted", "#94a3b8"),
+    cyan: value("--globe-cyan", "#38bdf8"),
+    green: value("--globe-green", "#34d399"),
+    amber: value("--globe-amber", "#fbbf24"),
+    rose: value("--globe-rose", "#fb7185"),
+    unknown: value("--globe-unknown", "#94a3b8"),
+    labelBackground: value("--globe-label-bg", "rgba(4, 10, 20, 0.9)"),
+    labelBorder: value("--globe-label-border", "rgba(148, 210, 236, 0.32)"),
   };
 }
 
@@ -455,9 +542,9 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
     const labelX = point.x + 7;
     const labelY = point.y - 16;
     roundedRect(context, labelX, labelY, labelWidth, 17, 5);
-    context.fillStyle = "rgba(4, 10, 20, 0.88)";
+    context.fillStyle = palette.labelBackground;
     context.fill();
-    context.strokeStyle = "rgba(148, 210, 236, 0.28)";
+    context.strokeStyle = palette.labelBorder;
     context.lineWidth = 0.8;
     context.stroke();
     context.fillStyle = palette.text;

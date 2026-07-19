@@ -1,7 +1,7 @@
 import { dashboardApi } from "./frontend/api-client.js";
 import { getLocale, t } from "./frontend/i18n.js";
 import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
-import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.1-globe-overview";
+import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.2-komari-geoip";
 import { applySiteTheme } from "./frontend/site-theme.js";
 import { applyThemeSettings } from "./frontend/theme-background.js";
 import { renderSparkline } from "./sparkline.js";
@@ -273,7 +273,8 @@ function renderDashboard(dashboard) {
   applyThemeSettings(meta);
   setAutoThemeBeijing(meta.autoThemeBeijing === true);
   elements.sourceChip.dataset.mode = meta.mode;
-  elements.sourceLabel.textContent = t("source.hybrid");
+  const sourceKey = ["live", "hybrid", "demo"].includes(meta.mode) ? meta.mode : "live";
+  elements.sourceLabel.textContent = t(`source.${sourceKey}`);
   const updatedTime = new Intl.DateTimeFormat(getLocale(), {
     hour: "2-digit",
     minute: "2-digit",
@@ -292,7 +293,7 @@ function renderDashboard(dashboard) {
 function showError(error) {
   lastError = error;
   elements.sourceChip.dataset.mode = "error";
-  elements.sourceLabel.textContent = t("source.hybrid");
+  elements.sourceLabel.textContent = t("source.error");
   elements.errorMessage.textContent = error.message || String(error);
   elements.errorPanel.hidden = false;
   if (!lastDashboard) {

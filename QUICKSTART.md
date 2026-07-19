@@ -31,6 +31,7 @@ sudo chmod 0750 config data
 
 ```dotenv
 KOMARI_BASE_URL=https://status.example.com/
+KOMARI_API_KEY=replace-with-komari-admin-api-key
 DEMO_MODE=false
 HOST=127.0.0.1
 PORT=3000
@@ -42,9 +43,9 @@ ENABLE_DIAGNOSTIC_API=false
 ENABLE_TOPOLOGY_EDITOR=true
 ```
 
-如果 Komari 需要登录态，再填写 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。这些值只能存在于服务器 `.env` 中。
+如果 Komari 需要登录态，再填写 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。需要 MaxMind 自动定位时填写 Komari 管理员 `KOMARI_API_KEY`。这些值只能存在于服务器 `.env` 中，不能写入前端文件。
 
-公开面板 `/` 不要求登录。`DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 只用于 `/admin` 后台；“设置 → 通用”可以切换 TopoMari / Glassmorphism、调整日夜配色并启用北京时间日出日落自动主题，“设置 → 站点”可以修改名称、描述和自定义 Favicon。
+公开面板 `/` 不要求登录。`DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 只用于 `/admin` 后台；“设置 → 通用”可以切换主题、调整日夜配色、启用北京时间自动主题，以及启用和更新 MaxMind GeoIP；“设置 → 站点”可以修改名称、描述和自定义 Favicon。
 
 只想先查看演示页面时，保持 `KOMARI_BASE_URL` 为空并使用 `DEMO_MODE=true`。
 
@@ -118,6 +119,8 @@ sudo certbot renew --dry-run
 3. 为第一段选择一个或多个 Komari Ping 任务。
 4. 为私有 edge 设置唯一的 `probe_id` 和 `agent_id`。
 5. 保存配置。
+
+如需按 Komari 节点公网 IP 自动定位，再进入“设置 → 通用 → GeoIP 数据库”，先点击“更新”，启用地理位置信息后保存。节点 IP 和 Komari API 密钥只在服务端处理。
 
 默认的 Alpha/Beta 节点只是公开演示数据，不能直接用于 live 环境。
 

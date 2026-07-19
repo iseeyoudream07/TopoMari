@@ -122,6 +122,11 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
       glassBorder: 18,
       cornerRadius: 18,
     },
+    geoIp: {
+      enabled: false,
+      provider: "maxmind",
+      lastUpdatedAt: "",
+    },
   });
   assert.deepEqual(sanitizeSiteSettings({
     site_name: "  My site  ",
@@ -151,7 +156,26 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
       glassBorder: 18,
       cornerRadius: 18,
     },
+    geoIp: {
+      enabled: false,
+      provider: "maxmind",
+      lastUpdatedAt: "",
+    },
   });
+});
+
+test("GeoIP settings only persist the local enablement and MaxMind metadata", () => {
+  const normalized = sanitizeTopologyConfig({
+    ...sampleConfig(),
+    geo_ip_enabled: true,
+    geo_ip_provider: "untrusted-provider",
+    geo_ip_last_updated_at: "2026-07-19T02:03:04Z",
+    geo_ip_api_key: "must-not-survive",
+  });
+  assert.equal(normalized.geo_ip_enabled, true);
+  assert.equal(normalized.geo_ip_provider, "maxmind");
+  assert.equal(normalized.geo_ip_last_updated_at, "2026-07-19T02:03:04.000Z");
+  assert.equal(JSON.stringify(normalized).includes("must-not-survive"), false);
 });
 
 test("visual theme settings whitelist presets and six-digit colors", () => {

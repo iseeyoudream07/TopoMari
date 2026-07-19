@@ -13,11 +13,12 @@ TopoMari 是一个可以部署在自己服务器上的 Komari 链路拓扑面板
 - 同时查看多条线路和每一段链路的健康状态。
 - 在发光地球上按拓扑方向显示链路弧线、地区节点和传输光点。
 - 读取 Komari 节点与 Ping 任务，估算用户到中转机的延迟。
+- 通过服务端 Komari API 密钥读取节点 IP，并用 MaxMind 国家数据库自动定位地球节点。
 - 在中转机、落地机上安装轻量探针，测量两台服务器之间的真实 TCP 延迟。
 - 记录最近一段时间的延迟与丢包，方便发现线路波动。
 - 在独立后台中添加、修改和删除链路，并管理私有探针。
 - 在“设置 → 站点”中修改站点名称、描述和 PNG / ICO Favicon。
-- 在“设置 → 通用”中切换 TopoMari / Glassmorphism 视觉主题，并自定义日间、夜间背景色和强调色。
+- 在“设置 → 通用”中切换视觉主题、自定义日夜配色，并启用或更新 GeoIP 数据库。
 - 启用 Glassmorphism 后，在一级菜单“主题设置”中配置亮暗背景图片或视频、模糊、遮罩、卡片透明度、边框和圆角。
 - 支持简体中文 / English、日间 / 夜间模式、北京时间日出日落自动主题和手机页面。
 - 更新面板时自动备份配置、探针身份和历史数据。
@@ -80,6 +81,7 @@ sudo nano /opt/TopoMari/.env
 
 ```dotenv
 KOMARI_BASE_URL=https://你的-komari-域名/
+KOMARI_API_KEY=你的-Komari-管理员-API-密钥
 DEMO_MODE=false
 
 HOST=127.0.0.1
@@ -95,6 +97,7 @@ ENABLE_TOPOLOGY_EDITOR=true
 
 - 只想先看演示页面：把 `KOMARI_BASE_URL` 留空，并设置 `DEMO_MODE=true`。
 - 使用真实 Komari：填写 `KOMARI_BASE_URL`，并设置 `DEMO_MODE=false`。
+- 使用自动 GeoIP 定位：填写 Komari 管理员 `KOMARI_API_KEY`；密钥和节点 IP 只在 TopoMari 服务端使用。
 - Komari 需要登录时：继续填写 `.env` 里的 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。
 - `DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 是 TopoMari 后台账号，不是 Komari 账号；公开面板不使用这组账号。
 - “链路管理”只有在账号密码和 `ENABLE_TOPOLOGY_EDITOR=true` 都已配置时才可使用。
@@ -180,7 +183,17 @@ sudo systemctl reload nginx
 
 仓库中的 Alpha / Beta 线路只是演示数据。接入真实 Komari 后，请在管理页面中换成自己的节点和任务。
 
-顶部地球会直接按照链路节点顺序绘制传输方向。节点可在 `config/topology.json` 中同时提供 `latitude` 与 `longitude` 以精确定位；未配置坐标时，会从 `region`、节点名称中的城市或 `JP`、`US`、`SG` 等地区代码推断，并为无法识别的演示节点分配稳定的备用位置。坐标和地区名称会随公开面板数据一起展示，请只填写适合公开的信息。
+顶部地球会直接按照链路节点顺序绘制传输方向。节点可在 `config/topology.json` 中同时提供 `latitude` 与 `longitude` 以精确定位；没有手动坐标时，TopoMari 会优先使用已启用的 MaxMind 国家结果，再从 `region`、节点名称中的城市或 `JP`、`US`、`SG` 等地区代码推断，并为无法识别的演示节点分配稳定的备用位置。
+
+### 启用 MaxMind GeoIP 定位
+
+先在服务器 `.env` 中配置 `KOMARI_API_KEY`，然后登录 TopoMari 后台并打开“设置 → 通用 → GeoIP 数据库”：
+
+1. 点击“更新”，TopoMari 会通过 Komari 管理接口启用 `mmdb` 提供商并更新 GeoLite2 Country 数据库；
+2. 打开“启用地理位置信息”，再保存通用设置；
+3. 公开面板下一次刷新时会按国家位置绘制 Komari 节点。
+
+TopoMari 只从 Komari 管理接口临时读取节点 UUID 与公网 IP；公开 `/api/site` 和 `/api/dashboard` 只返回已清洗的国家代码、国家名称和定位来源，不返回 IP、API 密钥或 Komari 节点令牌。MaxMind Country 数据只能定位到国家中心点；需要精确位置时仍可在拓扑节点上填写 `latitude` 和 `longitude`，手动坐标优先。
 
 ### 设置主题和颜色
 
@@ -217,7 +230,7 @@ Private probe installed and reporting
 
 ## 平时怎么看
 
-- 顶部四个数字：线路数量、在线节点、平均延迟和平均丢包。
+- 顶部六个数字：线路数量、在线节点、平均延迟、平均丢包、监测链路段和异常链路。
 - 链路拓扑：快速判断是哪一段变慢或断开。
 - 链路健康：查看最新延迟、平均延迟、丢包和变化趋势。
 - 受监测节点：确认 Komari 节点是否在线。
