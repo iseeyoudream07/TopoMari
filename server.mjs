@@ -10,6 +10,7 @@ import {
   serializeSessionCookie,
 } from "./lib/admin-session.mjs";
 import { KomariClient, KomariError } from "./lib/komari-client.mjs";
+import { KomariCredentialStore } from "./lib/komari-credential-store.mjs";
 import { KomariGeoIpService } from "./lib/komari-geoip.mjs";
 import { AgentRegistry } from "./lib/agent-registry.mjs";
 import { ProbeRateLimiter, ProbeValidationError, normalizeProbePayload } from "./lib/probe-ingest.mjs";
@@ -34,6 +35,7 @@ const agentBackupPath = resolve(rootDir, process.env.AGENT_BACKUP_PATH || "data/
 const probeDatabasePath = resolve(rootDir, process.env.PROBE_DB_PATH || "data/probes.db");
 const faviconPath = resolve(rootDir, process.env.SITE_FAVICON_PATH || "data/favicon");
 const themeAssetDir = resolve(rootDir, process.env.THEME_ASSET_DIR || "data/theme/user-assets");
+const komariApiKeyPath = resolve(rootDir, process.env.KOMARI_API_KEY_PATH || "data/komari-api-key");
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 const cacheTtlMs = Math.max(1, Number(process.env.CACHE_TTL_SECONDS || 8)) * 1000;
@@ -50,11 +52,16 @@ const adminSessionTtlSeconds = Math.max(300, Number(process.env.ADMIN_SESSION_TT
 const diagnosticApiEnabled = envFlag("ENABLE_DIAGNOSTIC_API");
 const allowUnauthenticatedDashboard = envFlag("ALLOW_UNAUTHENTICATED_DASHBOARD");
 
+const komariCredentialStore = new KomariCredentialStore(komariApiKeyPath, {
+  fallbackApiKey: process.env.KOMARI_API_KEY || "",
+});
+await komariCredentialStore.reload();
+
 const client = new KomariClient({
   baseUrl: process.env.KOMARI_BASE_URL || "",
   cookie: process.env.KOMARI_COOKIE || "",
   authorization: process.env.KOMARI_AUTHORIZATION || "",
-  apiKey: process.env.KOMARI_API_KEY || "",
+  apiKey: komariCredentialStore.apiKey,
   timeoutMs: Number(process.env.KOMARI_TIMEOUT_MS || 8000),
 });
 const geoIpService = new KomariGeoIpService({ client });
@@ -457,6 +464,10 @@ async function siteSettingsPayload({ csrfToken = "", includeGeoIpStatus = true }
     ...await faviconState(),
     backgroundAssets: await themeBackgroundState(),
     faviconUrl: "/favicon",
+    komariApiKey: {
+      configured: client.apiKeyConfigured,
+      managed: komariCredentialStore.managed,
+    },
     revision,
     csrfToken,
   };
@@ -579,6 +590,24 @@ async function writeFavicon(body) {
 }
 
 async function handleAdminApi(request, response, url, principal) {
+  if (url.pathname === "/api/admin/komari-api-key") {
+    if (request.method !== "PUT" && request.method !== "DELETE") {
+      return methodNotAllowed(response, ["PUT", "DELETE"]);
+    }
+    if (!requireEditorCsrf(request, response, principal)) return;
+    if (request.method === "PUT") {
+      if (!requireJsonContent(request, response)) return;
+      const body = await readJsonBody(request, 8_192);
+      await komariCredentialStore.set(body.apiKey);
+    } else {
+      await komariCredentialStore.clear();
+    }
+    client.setApiKey(komariCredentialStore.apiKey);
+    geoIpService.invalidate();
+    dashboardCache = { expiresAt: 0, value: null, promise: null };
+    return json(response, 200, await siteSettingsPayload({ csrfToken: principal.csrfToken }));
+  }
+
   if (url.pathname === "/api/admin/site" && request.method === "GET") {
     return json(response, 200, await siteSettingsPayload({ csrfToken: principal.csrfToken }));
   }
@@ -667,6 +696,10 @@ async function handleAdminApi(request, response, url, principal) {
     return json(response, 200, {
       ...site,
       geoIpStatus: await geoIpService.status(),
+      komariApiKey: {
+        configured: client.apiKeyConfigured,
+        managed: komariCredentialStore.managed,
+      },
       ...await faviconState(),
       backgroundAssets: await themeBackgroundState(),
       faviconUrl: "/favicon",

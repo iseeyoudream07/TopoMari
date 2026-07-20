@@ -114,6 +114,9 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(app, /meta\.mainTitle \|\| meta\.title \|\| "TopoMari"/);
   assert.match(adminHtml, /id="site-name-input"/);
   assert.match(adminHtml, /id="site-description-input"/);
+  assert.match(adminHtml, /id="komari-api-key-input"[^>]*type="password"/);
+  assert.match(adminHtml, /id="komari-api-key-save"/);
+  assert.match(adminHtml, /id="komari-api-key-clear"/);
   assert.match(adminHtml, /id="favicon-file"/);
   assert.match(adminHtml, /id="auto-theme-beijing"/);
   assert.match(adminHtml, /id="geoip-enabled"/);
@@ -134,6 +137,8 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(app, /applySiteTheme\(meta\)/);
   assert.match(app, /applyThemeSettings\(meta\)/);
   assert.match(api, /saveSite\(settings, revision, csrfToken\)/);
+  assert.match(api, /saveKomariApiKey\(apiKey, csrfToken\)/);
+  assert.match(api, /clearKomariApiKey\(csrfToken\)/);
   assert.match(api, /updateGeoIp\(csrfToken\)/);
   assert.match(siteTheme, /VISUAL_THEME_DEFAULTS/);
   assert.match(themeBackground, /theme-background\/\$\{mode\}/);
@@ -141,6 +146,8 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(api, /\/api\/admin\/theme\/background/);
   assert.match(server, /sanitizeSiteSettings/);
   assert.match(server, /\/api\/admin\/geoip\/update/);
+  assert.match(server, /\/api\/admin\/komari-api-key/);
+  assert.match(server, /KOMARI_API_KEY_PATH/);
 });
 
 test("keeps the admin login page concise", async () => {

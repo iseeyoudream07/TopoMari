@@ -11,11 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.8.2-komari-geoip"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.8.2-komari-geoip" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.2-komari-geoip" />
-    <link rel="stylesheet" href="/admin.css?v=2.8.2-komari-geoip" />
-    <script type="module" src="/admin.js?v=2.8.2-komari-geoip"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.3-ui1"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.3-ui1" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.3-ui1" />
+    <link rel="stylesheet" href="/admin.css?v=2.8.3-ui1" />
+    <script type="module" src="/admin.js?v=2.8.3-ui1"></script>
   </head>
   <body class="admin-body">
     <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
@@ -366,6 +366,24 @@
               <div class="settings-fields">
                 <label><span data-i18n="site.name">站点名称</span><input id="site-name-input" type="text" maxlength="160" required /></label>
                 <label><span data-i18n="site.description">站点描述</span><textarea id="site-description-input" maxlength="500" rows="4" required></textarea><small><span id="description-count">0</span>/500</small></label>
+              </div>
+            </section>
+
+            <section class="settings-card komari-api-card" aria-labelledby="komari-api-key-title">
+              <div class="settings-card-copy">
+                <h2 id="komari-api-key-title" data-i18n="komariApiKey.title">Komari API 密钥</h2>
+                <p data-i18n="komariApiKey.help">用于服务端读取节点地址和管理 GeoIP。密钥保存在持久化 data 目录，浏览器只能看到配置状态，无法读取原值。</p>
+              </div>
+              <div class="komari-api-settings">
+                <label class="komari-api-key-field">
+                  <span><strong data-i18n="komariApiKey.inputLabel">输入新密钥</strong><small id="komari-api-key-status" role="status"></small></span>
+                  <input id="komari-api-key-input" type="password" maxlength="4096" autocomplete="new-password" spellcheck="false" data-i18n-placeholder="komariApiKey.placeholder" placeholder="粘贴 Komari 管理员 API 密钥" />
+                </label>
+                <small class="komari-api-security" data-i18n="komariApiKey.security">保存后输入框会立即清空；以后填写新值将替换现有密钥。</small>
+                <div class="komari-api-actions">
+                  <button id="komari-api-key-clear" class="manager-button ghost" type="button" data-i18n="komariApiKey.clear">清除已保存密钥</button>
+                  <button id="komari-api-key-save" class="manager-button primary" type="button" data-i18n="komariApiKey.save">保存密钥</button>
+                </div>
               </div>
             </section>
 

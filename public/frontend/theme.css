@@ -42,16 +42,25 @@
   --shadow-soft: 0 8px 24px rgba(60, 55, 44, 0.055);
   --ambient-a: rgba(167, 98, 45, 0.24);
   --ambient-b: rgba(71, 127, 145, 0.18);
-  /* The canvas globe remains dark in both page modes, so it needs its own contrast-safe palette. */
-  --globe-text: #f8fafc;
-  --globe-muted: #91a6ba;
-  --globe-cyan: #38bdf8;
-  --globe-green: #34d399;
-  --globe-amber: #fbbf24;
-  --globe-rose: #fb7185;
-  --globe-unknown: #94a3b8;
-  --globe-label-bg: rgba(4, 10, 20, 0.9);
-  --globe-label-border: rgba(148, 210, 236, 0.32);
+  --globe-text: #26303d;
+  --globe-muted: #7d8796;
+  --globe-cyan: #0ea5c6;
+  --globe-green: #059669;
+  --globe-amber: #d39118;
+  --globe-rose: #e0526e;
+  --globe-unknown: #7d8796;
+  --globe-label-bg: rgba(255, 255, 255, 0.92);
+  --globe-label-border: rgba(100, 116, 139, 0.28);
+  --globe-surface-highlight: rgba(255, 255, 255, 0.99);
+  --globe-surface-middle: rgba(249, 251, 255, 0.99);
+  --globe-surface-edge: rgba(216, 226, 239, 0.99);
+  --globe-land-near: #111827;
+  --globe-land-far: #475569;
+  --globe-glow-inner: rgba(129, 140, 248, 0.2);
+  --globe-glow-outer: rgba(186, 230, 253, 0);
+  --globe-rim-start: rgba(147, 197, 253, 0.48);
+  --globe-rim-middle: rgba(125, 211, 252, 1);
+  --globe-rim-end: rgba(129, 140, 248, 0.34);
   --site-glass-blur: 18px;
   --site-glass-opacity: 78%;
   --site-glass-border-opacity: 18%;
@@ -93,6 +102,25 @@
   --shadow-soft: 0 8px 28px rgba(0, 0, 0, 0.14);
   --ambient-a: rgba(228, 163, 95, 0.16);
   --ambient-b: rgba(121, 182, 198, 0.13);
+  --globe-text: #f8fafc;
+  --globe-muted: #91a6ba;
+  --globe-cyan: #38bdf8;
+  --globe-green: #34d399;
+  --globe-amber: #fbbf24;
+  --globe-rose: #fb7185;
+  --globe-unknown: #94a3b8;
+  --globe-label-bg: rgba(4, 10, 20, 0.9);
+  --globe-label-border: rgba(148, 210, 236, 0.32);
+  --globe-surface-highlight: rgba(35, 52, 72, 0.9);
+  --globe-surface-middle: rgba(8, 15, 27, 0.97);
+  --globe-surface-edge: rgba(2, 6, 14, 0.99);
+  --globe-land-near: #f8fafc;
+  --globe-land-far: #91a6ba;
+  --globe-glow-inner: rgba(56, 189, 248, 0.05);
+  --globe-glow-outer: rgba(125, 211, 252, 0);
+  --globe-rim-start: rgba(186, 230, 253, 0.32);
+  --globe-rim-middle: rgba(125, 211, 252, 0.95);
+  --globe-rim-end: rgba(14, 165, 233, 0.18);
 }
 
 /*
@@ -1195,7 +1223,7 @@ h2 {
   }
 }
 
-/* 2.8.2 cockpit overview visual layer. */
+/* 2.8.3 cockpit overview visual layer. */
 .overview-stage .app-header {
   margin-bottom: 14px;
   padding: 9px 2px 16px;

@@ -378,10 +378,12 @@ test("agent enrollment issues a token once and supports explicit rotation", asyn
 
 test("enrollment codes are single-use, expiring, and store rotation intent", async (context) => {
   const directory = await mkdtemp(join(tmpdir(), "komari-code-"));
-  context.after(async () => rm(directory, { recursive: true, force: true }));
   let now = Date.parse("2026-07-16T00:00:00Z");
   const store = new ProbeStore({ filePath: join(directory, "probes.db"), now: () => now });
-  context.after(() => store.close());
+  context.after(async () => {
+    store.close();
+    await rm(directory, { recursive: true, force: true });
+  });
 
   const enrollment = store.createEnrollment("relay-agent", "relay-egress", { rotateExisting: true });
   const consumed = store.consumeEnrollment(enrollment.code);

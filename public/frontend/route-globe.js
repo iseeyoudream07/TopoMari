@@ -186,18 +186,18 @@ function pointInPolygon(lng, lat, polygon) {
   return inside;
 }
 
-function buildLandPoints() {
+function buildLandPoints({ spacing = 3.4, jitter = 1.2, weight = 0.72 } = {}) {
   const points = [];
-  for (let lat = -56; lat <= 82; lat += 3.4) {
-    const longitudeStep = Math.max(3.4, 3.4 / Math.max(0.45, Math.cos(lat * DEG_TO_RAD)));
+  for (let lat = -56; lat <= 82; lat += spacing) {
+    const longitudeStep = Math.max(spacing, spacing / Math.max(0.45, Math.cos(lat * DEG_TO_RAD)));
     for (let lng = -178; lng <= 180; lng += longitudeStep) {
       const seed = hashText(`${lat.toFixed(1)}:${lng.toFixed(1)}`);
-      const jitterLat = ((seed & 255) / 255 - 0.5) * 1.2;
-      const jitterLng = (((seed >>> 8) & 255) / 255 - 0.5) * 1.2;
+      const jitterLat = ((seed & 255) / 255 - 0.5) * jitter;
+      const jitterLng = (((seed >>> 8) & 255) / 255 - 0.5) * jitter;
       const sampleLat = lat + jitterLat;
       const sampleLng = lng + jitterLng;
       if (LAND_POLYGONS.some((polygon) => pointInPolygon(sampleLng, sampleLat, polygon))) {
-        points.push({ lat: sampleLat, lng: sampleLng, weight: 0.72 + ((seed >>> 16) & 255) / 900 });
+        points.push({ lat: sampleLat, lng: sampleLng, weight: weight + ((seed >>> 16) & 255) / 1200 });
       }
     }
   }
@@ -205,6 +205,7 @@ function buildLandPoints() {
 }
 
 const LAND_POINTS = buildLandPoints();
+const LIGHT_LAND_POINTS = buildLandPoints({ spacing: 2.15, jitter: 0.65, weight: 0.9 });
 
 function explicitLocation(node) {
   const latitude = Number(node?.latitude ?? node?.lat);
@@ -329,6 +330,7 @@ function readPalette(canvas) {
   const styles = getComputedStyle(canvas);
   const value = (name, fallback) => styles.getPropertyValue(name).trim() || fallback;
   return {
+    light: document.documentElement.dataset.theme !== "dark",
     text: value("--globe-text", "#f8fafc"),
     muted: value("--globe-muted", "#94a3b8"),
     cyan: value("--globe-cyan", "#38bdf8"),
@@ -338,6 +340,16 @@ function readPalette(canvas) {
     unknown: value("--globe-unknown", "#94a3b8"),
     labelBackground: value("--globe-label-bg", "rgba(4, 10, 20, 0.9)"),
     labelBorder: value("--globe-label-border", "rgba(148, 210, 236, 0.32)"),
+    surfaceHighlight: value("--globe-surface-highlight", "rgba(35, 52, 72, 0.9)"),
+    surfaceMiddle: value("--globe-surface-middle", "rgba(8, 15, 27, 0.97)"),
+    surfaceEdge: value("--globe-surface-edge", "rgba(2, 6, 14, 0.99)"),
+    landNear: value("--globe-land-near", "#f8fafc"),
+    landFar: value("--globe-land-far", "#94a3b8"),
+    glowInner: value("--globe-glow-inner", "rgba(56, 189, 248, 0.05)"),
+    glowOuter: value("--globe-glow-outer", "rgba(125, 211, 252, 0)"),
+    rimStart: value("--globe-rim-start", "rgba(186, 230, 253, 0.32)"),
+    rimMiddle: value("--globe-rim-middle", "rgba(125, 211, 252, 0.95)"),
+    rimEnd: value("--globe-rim-end", "rgba(14, 165, 233, 0.18)"),
   };
 }
 
@@ -398,8 +410,8 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
       metrics.radius * 1.14,
     );
     glow.addColorStop(0, "rgba(56, 189, 248, 0)");
-    glow.addColorStop(0.72, "rgba(56, 189, 248, 0.05)");
-    glow.addColorStop(1, "rgba(125, 211, 252, 0)");
+    glow.addColorStop(0.72, palette.glowInner);
+    glow.addColorStop(1, palette.glowOuter);
     context.fillStyle = glow;
     context.beginPath();
     context.arc(metrics.centerX, metrics.centerY, metrics.radius * 1.16, 0, Math.PI * 2);
@@ -407,7 +419,7 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
 
     context.save();
     context.shadowColor = palette.cyan;
-    context.shadowBlur = 24;
+    context.shadowBlur = palette.light ? 18 : 24;
     const globeFill = context.createRadialGradient(
       metrics.centerX - metrics.radius * 0.34,
       metrics.centerY - metrics.radius * 0.32,
@@ -416,9 +428,9 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
       metrics.centerY,
       metrics.radius,
     );
-    globeFill.addColorStop(0, "rgba(35, 52, 72, 0.9)");
-    globeFill.addColorStop(0.52, "rgba(8, 15, 27, 0.97)");
-    globeFill.addColorStop(1, "rgba(2, 6, 14, 0.99)");
+    globeFill.addColorStop(0, palette.surfaceHighlight);
+    globeFill.addColorStop(0.52, palette.surfaceMiddle);
+    globeFill.addColorStop(1, palette.surfaceEdge);
     context.fillStyle = globeFill;
     context.beginPath();
     context.arc(metrics.centerX, metrics.centerY, metrics.radius, 0, Math.PI * 2);
@@ -429,14 +441,21 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
     context.beginPath();
     context.arc(metrics.centerX, metrics.centerY, metrics.radius - 1, 0, Math.PI * 2);
     context.clip();
-    for (const point of LAND_POINTS) {
+    const landPoints = palette.light ? LIGHT_LAND_POINTS : LAND_POINTS;
+    for (const point of landPoints) {
       const projected = projectLocation(point, metrics);
       if (projected.z <= 0.015) continue;
-      const alpha = 0.24 + projected.z * 0.68;
+      const alpha = palette.light ? 0.65 + projected.z * 0.35 : 0.24 + projected.z * 0.68;
       context.globalAlpha = alpha;
-      context.fillStyle = projected.z > 0.65 ? palette.text : palette.muted;
+      context.fillStyle = projected.z > 0.65 ? palette.landNear : palette.landFar;
       context.beginPath();
-      context.arc(projected.x, projected.y, point.weight * (0.68 + projected.z * 0.52), 0, Math.PI * 2);
+      context.arc(
+        projected.x,
+        projected.y,
+        point.weight * (palette.light ? 0.95 + projected.z * 0.7 : 0.68 + projected.z * 0.52),
+        0,
+        Math.PI * 2,
+      );
       context.fill();
     }
     context.restore();
@@ -448,9 +467,9 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
       metrics.centerX + metrics.radius,
       metrics.centerY + metrics.radius,
     );
-    rim.addColorStop(0, "rgba(186, 230, 253, 0.32)");
-    rim.addColorStop(0.45, "rgba(125, 211, 252, 0.95)");
-    rim.addColorStop(1, "rgba(14, 165, 233, 0.18)");
+    rim.addColorStop(0, palette.rimStart);
+    rim.addColorStop(0.45, palette.rimMiddle);
+    rim.addColorStop(1, palette.rimEnd);
     context.strokeStyle = rim;
     context.lineWidth = 1.25;
     context.beginPath();

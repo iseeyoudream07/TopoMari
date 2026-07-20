@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.8.3 - 2026-07-20
+
+- Reworked the light-mode globe as a bright, high-density dark-dot world with a soft cool rim while preserving the existing dark-mode route globe.
+- Made the admin route editor respond to its actual content width so sidebar, editor, and deployment grids stay aligned at desktop zoom and narrow breakpoints.
+- Added authenticated Settings → Site controls for securely saving, replacing, and clearing the Komari API key without returning the secret to browsers or public APIs.
+
 ## 2.8.2 - 2026-07-19
 
 - Moved the live data-source indicator into the header and removed the globe caption to match the compact reference layout.

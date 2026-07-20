@@ -1,6 +1,6 @@
-import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js";
-import { getLocale, t } from "./frontend/i18n.js";
-import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
+import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js?v=2.8.3-ui1";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.3-ui1";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.3-ui1";
 import {
   applySiteTheme,
   defaultVisualThemeColors,
@@ -11,7 +11,7 @@ import {
   DEFAULT_THEME_SETTINGS,
   normalizeThemeSettings,
 } from "./frontend/theme-background.js";
-import { initTopologyEditor } from "./editor.js";
+import { initTopologyEditor } from "./editor.js?v=2.8.3-ui1";
 
 const elements = {
   loginGate: document.getElementById("login-gate"),
@@ -75,6 +75,10 @@ const elements = {
   siteName: document.getElementById("site-name-input"),
   siteDescription: document.getElementById("site-description-input"),
   descriptionCount: document.getElementById("description-count"),
+  komariApiKeyInput: document.getElementById("komari-api-key-input"),
+  komariApiKeySave: document.getElementById("komari-api-key-save"),
+  komariApiKeyClear: document.getElementById("komari-api-key-clear"),
+  komariApiKeyStatus: document.getElementById("komari-api-key-status"),
   autoTheme: document.getElementById("auto-theme-beijing"),
   geoIpEnabled: document.getElementById("geoip-enabled"),
   geoIpUpdate: document.getElementById("geoip-update"),
@@ -276,6 +280,20 @@ function updateGeoIpStatus(site = siteState) {
   elements.geoIpUpdate.disabled = !status.komariConfigured || !status.apiKeyConfigured;
 }
 
+function updateKomariApiKeyStatus(site = siteState) {
+  const state = site?.komariApiKey || {};
+  elements.komariApiKeyInput.value = "";
+  elements.komariApiKeyStatus.textContent = t(
+    state.managed
+      ? "komariApiKey.statusManaged"
+      : state.configured
+        ? "komariApiKey.statusEnvironment"
+        : "komariApiKey.statusMissing",
+  );
+  elements.komariApiKeyStatus.dataset.configured = String(state.configured === true);
+  elements.komariApiKeyClear.disabled = state.managed !== true;
+}
+
 function fillGeneralForm(site) {
   const settings = normalizeVisualThemeSettings(site);
   document.querySelectorAll('input[name="visual-theme"]').forEach((input) => {
@@ -399,6 +417,7 @@ function fillSiteForm(site) {
   setThemeSettingsForm(site);
   syncThemeSettingsAvailability(site);
   updateFaviconStatus();
+  updateKomariApiKeyStatus(site);
   updateSiteIdentity(site);
   updateFaviconImages(site.faviconVersion || Date.now());
 }
@@ -714,6 +733,42 @@ elements.siteForm.addEventListener("submit", async (event) => {
   }
 });
 
+elements.komariApiKeySave.addEventListener("click", async () => {
+  const apiKey = elements.komariApiKeyInput.value.trim();
+  if (!apiKey) {
+    showNotice(t("komariApiKey.required"), "error");
+    elements.komariApiKeyInput.focus();
+    return;
+  }
+  elements.komariApiKeySave.disabled = true;
+  elements.komariApiKeyStatus.textContent = t("komariApiKey.saving");
+  try {
+    const site = await adminApi.saveKomariApiKey(apiKey, session.csrfToken);
+    fillSiteForm(site);
+    editorController?.syncSiteSettings?.(site, site.revision);
+    showNotice(t("komariApiKey.saved"));
+  } catch (error) {
+    if (!await handleUnauthorized(error)) showNotice(error.message, "error");
+    updateKomariApiKeyStatus(siteState);
+  } finally {
+    elements.komariApiKeySave.disabled = false;
+  }
+});
+
+elements.komariApiKeyClear.addEventListener("click", async () => {
+  if (!siteState?.komariApiKey?.managed || !window.confirm(t("komariApiKey.clearConfirm"))) return;
+  elements.komariApiKeyClear.disabled = true;
+  try {
+    const site = await adminApi.clearKomariApiKey(session.csrfToken);
+    fillSiteForm(site);
+    editorController?.syncSiteSettings?.(site, site.revision);
+    showNotice(t("komariApiKey.cleared"));
+  } catch (error) {
+    if (!await handleUnauthorized(error)) showNotice(error.message, "error");
+    updateKomariApiKeyStatus(siteState);
+  }
+});
+
 elements.faviconUpload.addEventListener("click", async () => {
   const file = elements.faviconFile.files?.[0];
   if (!file) {
@@ -756,6 +811,7 @@ document.addEventListener("topomari:languagechange", () => {
   updateFaviconStatus();
   updateThemeAssetStatus();
   updateGeoIpStatus();
+  updateKomariApiKeyStatus();
   if (siteState) updateSiteIdentity(siteState, { syncVisualTheme: false });
 });
 

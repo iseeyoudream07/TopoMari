@@ -1,7 +1,7 @@
-import { dashboardApi } from "./frontend/api-client.js";
-import { getLocale, t } from "./frontend/i18n.js";
-import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js";
-import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.2-komari-geoip";
+import { dashboardApi } from "./frontend/api-client.js?v=2.8.3-ui1";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.3-ui1";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.3-ui1";
+import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.3-ui1";
 import { applySiteTheme } from "./frontend/site-theme.js";
 import { applyThemeSettings } from "./frontend/theme-background.js";
 import { renderSparkline } from "./sparkline.js";

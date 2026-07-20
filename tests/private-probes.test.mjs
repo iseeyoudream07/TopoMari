@@ -10,10 +10,12 @@ import { buildLiveDashboard } from "../lib/topology-service.mjs";
 
 test("stores private probe samples in SQLite and computes loss", async (context) => {
   const directory = await mkdtemp(join(tmpdir(), "komari-probes-"));
-  context.after(async () => rm(directory, { recursive: true, force: true }));
   const now = Date.parse("2026-07-15T12:00:00Z");
   const store = new ProbeStore({ filePath: join(directory, "probes.db"), now: () => now });
-  context.after(() => store.close());
+  context.after(async () => {
+    store.close();
+    await rm(directory, { recursive: true, force: true });
+  });
 
   store.ingest("relay-agent", [
     { edgeId: "relay-to-exit", measuredAt: now - 60_000, success: true, latencyMs: 10, error: "" },

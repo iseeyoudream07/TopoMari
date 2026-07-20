@@ -1736,7 +1736,7 @@ h2 {
   }
 }
 
-/* 2.8.2 cockpit overview: structural layout only; theme surfaces live in theme.css. */
+/* 2.8.3 cockpit overview: structural layout only; theme surfaces live in theme.css. */
 .overview-stage {
   position: relative;
   margin-bottom: 22px;

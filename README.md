@@ -17,7 +17,7 @@ TopoMari 是一个可以部署在自己服务器上的 Komari 链路拓扑面板
 - 在中转机、落地机上安装轻量探针，测量两台服务器之间的真实 TCP 延迟。
 - 记录最近一段时间的延迟与丢包，方便发现线路波动。
 - 在独立后台中添加、修改和删除链路，并管理私有探针。
-- 在“设置 → 站点”中修改站点名称、描述和 PNG / ICO Favicon。
+- 在“设置 → 站点”中修改站点名称、描述和 PNG / ICO Favicon，并安全录入 Komari API 密钥。
 - 在“设置 → 通用”中切换视觉主题、自定义日夜配色，并启用或更新 GeoIP 数据库。
 - 启用 Glassmorphism 后，在一级菜单“主题设置”中配置亮暗背景图片或视频、模糊、遮罩、卡片透明度、边框和圆角。
 - 支持简体中文 / English、日间 / 夜间模式、北京时间日出日落自动主题和手机页面。
@@ -81,7 +81,8 @@ sudo nano /opt/TopoMari/.env
 
 ```dotenv
 KOMARI_BASE_URL=https://你的-komari-域名/
-KOMARI_API_KEY=你的-Komari-管理员-API-密钥
+# 可留空，启动后也能在“设置 → 站点”中安全保存
+KOMARI_API_KEY=
 DEMO_MODE=false
 
 HOST=127.0.0.1
@@ -97,7 +98,7 @@ ENABLE_TOPOLOGY_EDITOR=true
 
 - 只想先看演示页面：把 `KOMARI_BASE_URL` 留空，并设置 `DEMO_MODE=true`。
 - 使用真实 Komari：填写 `KOMARI_BASE_URL`，并设置 `DEMO_MODE=false`。
-- 使用自动 GeoIP 定位：填写 Komari 管理员 `KOMARI_API_KEY`；密钥和节点 IP 只在 TopoMari 服务端使用。
+- 使用自动 GeoIP 定位：可以填写服务端 `KOMARI_API_KEY`，也可以启动后在“设置 → 站点”中保存；密钥和节点 IP 只在 TopoMari 服务端使用。
 - Komari 需要登录时：继续填写 `.env` 里的 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。
 - `DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 是 TopoMari 后台账号，不是 Komari 账号；公开面板不使用这组账号。
 - “链路管理”只有在账号密码和 `ENABLE_TOPOLOGY_EDITOR=true` 都已配置时才可使用。
@@ -187,7 +188,7 @@ sudo systemctl reload nginx
 
 ### 启用 MaxMind GeoIP 定位
 
-先在服务器 `.env` 中配置 `KOMARI_API_KEY`，然后登录 TopoMari 后台并打开“设置 → 通用 → GeoIP 数据库”：
+先在服务器 `.env` 中配置 `KOMARI_API_KEY`，或登录 TopoMari 后台在“设置 → 站点 → Komari API 密钥”中保存。后台保存的值位于忽略版本控制的 `data/komari-api-key`，不会回显到浏览器；随后打开“设置 → 通用 → GeoIP 数据库”：
 
 1. 点击“更新”，TopoMari 会通过 Komari 管理接口启用 `mmdb` 提供商并更新 GeoLite2 Country 数据库；
 2. 打开“启用地理位置信息”，再保存通用设置；

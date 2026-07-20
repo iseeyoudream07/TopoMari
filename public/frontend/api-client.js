@@ -109,6 +109,19 @@ export const adminApi = Object.freeze({
       csrfToken,
     });
   },
+  saveKomariApiKey(apiKey, csrfToken) {
+    return requestJson("/api/admin/komari-api-key", {
+      method: "PUT",
+      body: { apiKey },
+      csrfToken,
+    });
+  },
+  clearKomariApiKey(csrfToken) {
+    return requestJson("/api/admin/komari-api-key", {
+      method: "DELETE",
+      csrfToken,
+    });
+  },
   uploadFavicon(file, csrfToken) {
     return requestFavicon(file, csrfToken);
   },

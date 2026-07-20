@@ -1,5 +1,5 @@
-import { editorApi } from "./frontend/api-client.js";
-import { getLocale, t } from "./frontend/i18n.js";
+import { editorApi } from "./frontend/api-client.js?v=2.8.3-ui1";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.3-ui1";
 
 const elements = {
   toggle: document.getElementById("manager-toggle"),
