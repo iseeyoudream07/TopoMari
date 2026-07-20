@@ -26,6 +26,12 @@
   "geo_ip_enabled": false,
   "geo_ip_provider": "maxmind",
   "geo_ip_last_updated_at": "",
+  "health_thresholds": {
+    "warning_latency_ms": 150,
+    "degraded_latency_ms": 250,
+    "warning_loss_percent": 0,
+    "degraded_loss_percent": 20
+  },
   "subtitle": "Example multi-hop latency and packet-loss dashboard",
   "refresh_interval_seconds": 15,
   "history_hours": 1,

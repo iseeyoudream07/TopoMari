@@ -1,5 +1,5 @@
-import { editorApi } from "./frontend/api-client.js?v=2.8.3-ui1";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.3-ui1";
+import { editorApi } from "./frontend/api-client.js?v=2.8.4-ui1";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui1";
 
 const elements = {
   toggle: document.getElementById("manager-toggle"),
@@ -199,6 +199,7 @@ function nodeOptions(currentId) {
 
 function thresholdFields(edge) {
   const thresholds = edge.health_thresholds || {};
+  const globalThresholds = draft?.health_thresholds || {};
   return `
     <fieldset class="threshold-fieldset">
       <legend>${escapeHtml(t("editor.thresholdLegend"))}</legend>
@@ -206,7 +207,7 @@ function thresholdFields(edge) {
         ${Object.entries(thresholdLabels).map(([key, labelKey]) => `
           <label>
             <span>${escapeHtml(t(labelKey))}</span>
-            <input type="number" min="0" step="0.1" data-threshold-key="${key}" value="${escapeHtml(thresholds[key] ?? "")}" placeholder="${escapeHtml(t("common.default"))}" />
+            <input type="number" min="0" step="0.1" data-threshold-key="${key}" value="${escapeHtml(thresholds[key] ?? "")}" placeholder="${escapeHtml(globalThresholds[key] ?? t("common.default"))}" />
           </label>`).join("")}
       </div>
     </fieldset>`;
@@ -757,6 +758,12 @@ function syncSiteSettings(site, nextRevision) {
   draft.geo_ip_enabled = site.geoIp?.enabled === true;
   draft.geo_ip_provider = "maxmind";
   draft.geo_ip_last_updated_at = site.geoIp?.lastUpdatedAt || "";
+  draft.health_thresholds = {
+    warning_latency_ms: site.healthThresholds?.warning_latency_ms ?? 150,
+    degraded_latency_ms: site.healthThresholds?.degraded_latency_ms ?? 250,
+    warning_loss_percent: site.healthThresholds?.warning_loss_percent ?? 0,
+    degraded_loss_percent: site.healthThresholds?.degraded_loss_percent ?? 20,
+  };
   if (nextRevision) revision = nextRevision;
   if (bootstrap?.config) bootstrap.config = clone(draft);
 }

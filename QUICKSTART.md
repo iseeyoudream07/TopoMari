@@ -46,7 +46,7 @@ ENABLE_TOPOLOGY_EDITOR=true
 
 如果 Komari 需要登录态，再填写 `KOMARI_COOKIE` 或 `KOMARI_AUTHORIZATION`。需要 MaxMind 自动定位时，可填写 Komari 管理员 `KOMARI_API_KEY`，也可在启动后通过“设置 → 站点”保存；后台保存的值只存在于持久化 `data/komari-api-key`，不会返回前端。
 
-公开面板 `/` 不要求登录。`DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 只用于 `/admin` 后台；“设置 → 通用”可以切换主题、调整日夜配色、启用北京时间自动主题，以及启用和更新 MaxMind GeoIP；“设置 → 站点”可以修改名称、描述、自定义 Favicon 和服务端 Komari API 密钥。
+公开面板 `/` 不要求登录。`DASHBOARD_USER` 和 `DASHBOARD_PASSWORD` 只用于 `/admin` 后台；“设置 → 通用”可以切换主题、调整日夜配色、设置全局链路健康阈值、启用北京时间自动主题，以及启用和更新 MaxMind GeoIP；“设置 → 站点”可以修改名称、描述、自定义 Favicon 和服务端 Komari API 密钥。
 
 只想先查看演示页面时，保持 `KOMARI_BASE_URL` 为空并使用 `DEMO_MODE=true`。
 

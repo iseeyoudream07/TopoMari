@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 2.8.4 - 2026-07-20
+
+- Rebuilt every route-editor region as a consistently sized card so the route library, path composer, node or edge editor, actions, and deployment controls remain aligned at desktop zoom and narrow breakpoints.
+- Added global warning and degraded latency / packet-loss thresholds under Settings → General, with per-edge overrides preserved.
+
 ## 2.8.3 - 2026-07-20
 
 - Reworked the light-mode globe as a bright, high-density dark-dot world with a soft cool rim while preserving the existing dark-mode route globe.

@@ -178,6 +178,37 @@ test("GeoIP settings only persist the local enablement and MaxMind metadata", ()
   assert.equal(JSON.stringify(normalized).includes("must-not-survive"), false);
 });
 
+test("global health thresholds are normalized and validated", () => {
+  const config = sampleConfig();
+  config.health_thresholds = {
+    warning_latency_ms: 200,
+    degraded_latency_ms: 450,
+    warning_loss_percent: 10,
+    degraded_loss_percent: 35,
+  };
+  config.routes[0].edges[0].health_thresholds = { warning_latency_ms: 300 };
+  const normalized = sanitizeTopologyConfig(config);
+  assert.deepEqual(normalized.health_thresholds, {
+    warning_latency_ms: 200,
+    degraded_latency_ms: 450,
+    warning_loss_percent: 10,
+    degraded_loss_percent: 35,
+  });
+  assert.deepEqual(normalized.routes[0].edges[0].health_thresholds, { warning_latency_ms: 300 });
+  assert.throws(
+    () => sanitizeTopologyConfig({
+      ...sampleConfig(),
+      health_thresholds: {
+        warning_latency_ms: 500,
+        degraded_latency_ms: 300,
+        warning_loss_percent: 10,
+        degraded_loss_percent: 35,
+      },
+    }),
+    /must be lower/,
+  );
+});
+
 test("visual theme settings whitelist presets and six-digit colors", () => {
   assert.deepEqual(sanitizeVisualThemeSettings({
     visualTheme: "glassmorphism",

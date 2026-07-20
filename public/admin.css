@@ -493,14 +493,69 @@
   display: none;
 }
 
+#routes-view {
+  width: min(100% - clamp(28px, 6vw, 84px), 1240px);
+}
+
 .admin-manager-panel {
+  display: grid;
   min-width: 0;
   margin: 0;
+  gap: 18px;
   container-type: inline-size;
 }
 
 .admin-manager-panel .manager-heading {
   align-items: flex-end;
+}
+
+.admin-manager-panel .manager-workspace {
+  align-items: start;
+  gap: 16px;
+  padding-top: 0;
+}
+
+.admin-manager-panel .route-library,
+.admin-manager-panel .route-composer-card,
+.admin-manager-panel .selection-editor,
+.admin-manager-panel .deployment-panel,
+.admin-manager-panel .agent-panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-inset) 82%, transparent);
+}
+
+.admin-manager-panel .route-library {
+  padding: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.admin-manager-panel .route-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-manager-panel .route-composer-card {
+  padding: 16px;
+}
+
+.admin-manager-panel .route-path-builder {
+  margin: 18px 0 0;
+}
+
+.admin-manager-panel .selection-editor {
+  background: color-mix(in srgb, var(--surface-solid) 88%, transparent);
+}
+
+.admin-manager-panel .manager-actions {
+  margin-top: 0;
+}
+
+.admin-manager-panel .deployment-panel,
+.admin-manager-panel .agent-panel {
+  margin-top: 0;
+  padding: 18px;
 }
 
 .admin-global-notice,
@@ -1090,6 +1145,103 @@
   outline-offset: 3px;
 }
 
+.health-threshold-settings {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.health-threshold-group {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--amber) 32%, var(--border));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--amber) 7%, var(--surface-inset));
+}
+
+.health-threshold-group.is-degraded {
+  border-color: color-mix(in srgb, var(--rose) 30%, var(--border));
+  background: color-mix(in srgb, var(--rose) 6%, var(--surface-inset));
+}
+
+.health-threshold-group-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.health-threshold-group-copy strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.health-threshold-group-copy small,
+.health-threshold-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.health-threshold-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.health-threshold-grid > label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.health-threshold-input {
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-field);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.health-threshold-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.health-threshold-input input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.health-threshold-input em {
+  min-width: 42px;
+  padding: 0 11px;
+  border-left: 1px solid var(--border);
+  color: var(--subtle);
+  font-size: 11px;
+  font-style: normal;
+  text-align: center;
+}
+
+.health-threshold-note {
+  margin: 2px 2px 0;
+}
+
 .geoip-settings {
   display: grid;
   min-width: 0;
@@ -1182,8 +1334,8 @@
   }
 
   .admin-manager-panel .route-library {
-    padding: 0 0 18px;
-    border-right: 0;
+    padding: 16px;
+    border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
 
@@ -1260,7 +1412,8 @@
   .theme-preset-grid,
   .theme-color-grid,
   .background-source-grid,
-  .theme-range-grid {
+  .theme-range-grid,
+  .health-threshold-grid {
     grid-template-columns: 1fr;
   }
 }

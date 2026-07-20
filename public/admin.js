@@ -1,6 +1,6 @@
-import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js?v=2.8.3-ui1";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.3-ui1";
-import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.3-ui1";
+import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui1";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui1";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui1";
 import {
   applySiteTheme,
   defaultVisualThemeColors,
@@ -11,7 +11,7 @@ import {
   DEFAULT_THEME_SETTINGS,
   normalizeThemeSettings,
 } from "./frontend/theme-background.js";
-import { initTopologyEditor } from "./editor.js?v=2.8.3-ui1";
+import { initTopologyEditor } from "./editor.js?v=2.8.4-ui1";
 
 const elements = {
   loginGate: document.getElementById("login-gate"),
@@ -80,6 +80,10 @@ const elements = {
   komariApiKeyClear: document.getElementById("komari-api-key-clear"),
   komariApiKeyStatus: document.getElementById("komari-api-key-status"),
   autoTheme: document.getElementById("auto-theme-beijing"),
+  warningLatencyThreshold: document.getElementById("warning-latency-threshold"),
+  degradedLatencyThreshold: document.getElementById("degraded-latency-threshold"),
+  warningLossThreshold: document.getElementById("warning-loss-threshold"),
+  degradedLossThreshold: document.getElementById("degraded-loss-threshold"),
   geoIpEnabled: document.getElementById("geoip-enabled"),
   geoIpUpdate: document.getElementById("geoip-update"),
   geoIpStatus: document.getElementById("geoip-status"),
@@ -198,7 +202,10 @@ function activateView(view, { updateHash = true } = {}) {
         ? "admin.site"
         : "admin.routes";
   elements.breadcrumb.textContent = t(breadcrumbKey);
-  if (updateHash) history.replaceState(null, "", `#${resolved}`);
+  if (updateHash) {
+    history.replaceState(null, "", `#${resolved}`);
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }
   closeSidebar();
 }
 
@@ -242,6 +249,28 @@ function generalThemeDraft() {
       darkAccent: elements.themeDarkAccent.value,
     },
   });
+}
+
+function healthThresholdDraft() {
+  return {
+    warning_latency_ms: Number(elements.warningLatencyThreshold.value),
+    degraded_latency_ms: Number(elements.degradedLatencyThreshold.value),
+    warning_loss_percent: Number(elements.warningLossThreshold.value),
+    degraded_loss_percent: Number(elements.degradedLossThreshold.value),
+  };
+}
+
+function validateHealthThresholdInputs() {
+  const thresholds = healthThresholdDraft();
+  const latencyError = thresholds.warning_latency_ms >= thresholds.degraded_latency_ms
+    ? t("healthThresholds.latencyOrderError")
+    : "";
+  const lossError = thresholds.warning_loss_percent >= thresholds.degraded_loss_percent
+    ? t("healthThresholds.lossOrderError")
+    : "";
+  elements.degradedLatencyThreshold.setCustomValidity(latencyError);
+  elements.degradedLossThreshold.setCustomValidity(lossError);
+  return !latencyError && !lossError;
 }
 
 function previewGeneralTheme() {
@@ -302,6 +331,12 @@ function fillGeneralForm(site) {
   elements.customThemeColors.checked = settings.customThemeColors;
   setThemeColorInputs(settings.themeColors);
   elements.themeColorFields.hidden = !settings.customThemeColors;
+  const thresholds = site.healthThresholds || {};
+  elements.warningLatencyThreshold.value = String(thresholds.warning_latency_ms ?? 150);
+  elements.degradedLatencyThreshold.value = String(thresholds.degraded_latency_ms ?? 250);
+  elements.warningLossThreshold.value = String(thresholds.warning_loss_percent ?? 0);
+  elements.degradedLossThreshold.value = String(thresholds.degraded_loss_percent ?? 20);
+  validateHealthThresholdInputs();
   elements.geoIpEnabled.checked = site.geoIp?.enabled === true;
   updateGeoIpStatus(site);
   elements.generalSaveStatus.textContent = "";
@@ -394,6 +429,7 @@ function siteSavePayload({
   autoThemeBeijing = siteState.autoThemeBeijing,
   visualSettings = normalizeVisualThemeSettings(siteState),
   themeSettings = normalizeThemeSettings(siteState),
+  healthThresholds = siteState.healthThresholds,
   geoIp = { enabled: siteState.geoIp?.enabled === true },
 } = {}) {
   return {
@@ -402,6 +438,7 @@ function siteSavePayload({
     autoThemeBeijing,
     ...visualSettings,
     themeSettings,
+    healthThresholds,
     geoIp,
   };
 }
@@ -540,6 +577,13 @@ elements.themeColorsReset.addEventListener("click", () => {
 });
 
 [
+  elements.warningLatencyThreshold,
+  elements.degradedLatencyThreshold,
+  elements.warningLossThreshold,
+  elements.degradedLossThreshold,
+].forEach((input) => input.addEventListener("input", validateHealthThresholdInputs));
+
+[
   elements.backgroundEnabled,
   elements.backgroundType,
 ].forEach((input) => input.addEventListener("change", previewThemeSettings));
@@ -661,12 +705,17 @@ elements.darkBackgroundDelete.addEventListener("click", () => deleteThemeBackgro
 elements.generalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!siteState) return;
+  if (!validateHealthThresholdInputs()) {
+    elements.generalForm.reportValidity();
+    return;
+  }
   elements.generalSave.disabled = true;
   elements.generalSaveStatus.textContent = t("site.saving");
   try {
     const site = await adminApi.saveSite(siteSavePayload({
       autoThemeBeijing: elements.autoTheme.checked,
       visualSettings: generalThemeDraft(),
+      healthThresholds: healthThresholdDraft(),
       geoIp: { enabled: elements.geoIpEnabled.checked },
     }), siteState.revision, session.csrfToken);
     fillSiteForm(site);
@@ -812,6 +861,7 @@ document.addEventListener("topomari:languagechange", () => {
   updateThemeAssetStatus();
   updateGeoIpStatus();
   updateKomariApiKeyStatus();
+  validateHealthThresholdInputs();
   if (siteState) updateSiteIdentity(siteState, { syncVisualTheme: false });
 });
 

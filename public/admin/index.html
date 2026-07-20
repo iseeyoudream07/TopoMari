@@ -11,11 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.8.3-ui1"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.8.3-ui1" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.3-ui1" />
-    <link rel="stylesheet" href="/admin.css?v=2.8.3-ui1" />
-    <script type="module" src="/admin.js?v=2.8.3-ui1"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.4-ui1"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.4-ui1" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.4-ui1" />
+    <link rel="stylesheet" href="/admin.css?v=2.8.4-ui1" />
+    <script type="module" src="/admin.js?v=2.8.4-ui1"></script>
   </head>
   <body class="admin-body">
     <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
@@ -143,11 +143,13 @@
                 <div id="route-list" class="route-list"></div>
               </aside>
               <div class="route-editor">
-                <div class="route-meta-fields">
-                  <label><span data-i18n="manager.routeName">链路名称</span><input id="route-name-input" type="text" maxlength="160" autocomplete="off" /></label>
-                  <label><span data-i18n="manager.routeId">链路 ID</span><input id="route-id-input" type="text" maxlength="128" autocomplete="off" spellcheck="false" /></label>
-                </div>
-                <div id="route-path-builder" class="route-path-builder" aria-label="可交互链路路径" data-i18n-aria-label="manager.pathAria"></div>
+                <section class="route-composer-card">
+                  <div class="route-meta-fields">
+                    <label><span data-i18n="manager.routeName">链路名称</span><input id="route-name-input" type="text" maxlength="160" autocomplete="off" /></label>
+                    <label><span data-i18n="manager.routeId">链路 ID</span><input id="route-id-input" type="text" maxlength="128" autocomplete="off" spellcheck="false" /></label>
+                  </div>
+                  <div id="route-path-builder" class="route-path-builder" aria-label="可交互链路路径" data-i18n-aria-label="manager.pathAria"></div>
+                </section>
                 <div id="route-selection-editor" class="selection-editor"></div>
                 <div class="manager-actions">
                   <span id="route-dirty-state" class="dirty-state" data-i18n="manager.saved">已保存</span>
@@ -242,6 +244,48 @@
                 <span><strong data-i18n="site.autoBeijing">跟随北京时间日出 / 日落</strong><small data-i18n="site.autoBeijingHelp">手动切换会暂时生效，到下一次日出或日落时恢复自动。</small></span>
                 <input id="auto-theme-beijing" type="checkbox" role="switch" />
               </label>
+            </section>
+
+            <section class="settings-card health-thresholds-card" aria-labelledby="health-thresholds-title">
+              <div class="settings-card-copy">
+                <h2 id="health-thresholds-title" data-i18n="healthThresholds.title">链路健康状态阈值</h2>
+                <p data-i18n="healthThresholds.help">为所有链路设置统一的关注与异常阈值；链路编辑器中的单独设置仍可覆盖这些值。</p>
+              </div>
+              <div class="health-threshold-settings">
+                <div class="health-threshold-group">
+                  <div class="health-threshold-group-copy">
+                    <strong data-i18n="healthThresholds.warningTitle">关注状态</strong>
+                    <small data-i18n="healthThresholds.warningHelp">延迟达到阈值，或丢包率超过阈值时，链路显示为关注。</small>
+                  </div>
+                  <div class="health-threshold-grid">
+                    <label>
+                      <span data-i18n="healthThresholds.warningLatency">延迟阈值</span>
+                      <span class="health-threshold-input"><input id="warning-latency-threshold" type="number" min="0" max="60000" step="1" required /><em>ms</em></span>
+                    </label>
+                    <label>
+                      <span data-i18n="healthThresholds.warningLoss">丢包率阈值</span>
+                      <span class="health-threshold-input"><input id="warning-loss-threshold" type="number" min="0" max="100" step="0.1" required /><em>%</em></span>
+                    </label>
+                  </div>
+                </div>
+                <div class="health-threshold-group is-degraded">
+                  <div class="health-threshold-group-copy">
+                    <strong data-i18n="healthThresholds.degradedTitle">异常状态</strong>
+                    <small data-i18n="healthThresholds.degradedHelp">延迟或丢包率达到更高阈值时，链路显示为异常。</small>
+                  </div>
+                  <div class="health-threshold-grid">
+                    <label>
+                      <span data-i18n="healthThresholds.degradedLatency">延迟阈值</span>
+                      <span class="health-threshold-input"><input id="degraded-latency-threshold" type="number" min="0" max="60000" step="1" required /><em>ms</em></span>
+                    </label>
+                    <label>
+                      <span data-i18n="healthThresholds.degradedLoss">丢包率阈值</span>
+                      <span class="health-threshold-input"><input id="degraded-loss-threshold" type="number" min="0" max="100" step="0.1" required /><em>%</em></span>
+                    </label>
+                  </div>
+                </div>
+                <p class="health-threshold-note" data-i18n="healthThresholds.note">无数据时仍显示未知，最近一次探测失败时仍直接显示失败。</p>
+              </div>
             </section>
 
             <section class="settings-card geoip-settings-card" aria-labelledby="geoip-settings-title">

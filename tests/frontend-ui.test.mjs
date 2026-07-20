@@ -119,6 +119,10 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(adminHtml, /id="komari-api-key-clear"/);
   assert.match(adminHtml, /id="favicon-file"/);
   assert.match(adminHtml, /id="auto-theme-beijing"/);
+  assert.match(adminHtml, /id="warning-latency-threshold"/);
+  assert.match(adminHtml, /id="degraded-latency-threshold"/);
+  assert.match(adminHtml, /id="warning-loss-threshold"/);
+  assert.match(adminHtml, /id="degraded-loss-threshold"/);
   assert.match(adminHtml, /id="geoip-enabled"/);
   assert.match(adminHtml, /id="geoip-update"/);
   assert.match(adminHtml, /data-admin-view="general"/);
@@ -133,6 +137,7 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(adminHtml, /sanrokamlan-prog\/komari-theme-Glassmorphism/);
   assert.match(html, /id="site-background"/);
   assert.match(admin, /adminApi\.saveSite/);
+  assert.match(admin, /healthThresholds: healthThresholdDraft\(\)/);
   assert.match(admin, /applySiteTheme/);
   assert.match(app, /applySiteTheme\(meta\)/);
   assert.match(app, /applyThemeSettings\(meta\)/);
@@ -148,6 +153,7 @@ test("keeps TopoMari defaults while allowing admin-controlled site settings", as
   assert.match(server, /\/api\/admin\/geoip\/update/);
   assert.match(server, /\/api\/admin\/komari-api-key/);
   assert.match(server, /KOMARI_API_KEY_PATH/);
+  assert.match(server, /health_thresholds: healthThresholds/);
 });
 
 test("keeps the admin login page concise", async () => {
@@ -258,10 +264,13 @@ test("keeps the public dashboard concise and moves management into the admin pag
   assert.match(adminHtml, /data-admin-view="theme"/);
   assert.match(adminHtml, /id="settings-toggle"/);
   assert.match(adminHtml, /data-admin-panel="general"/);
+  assert.match(adminHtml, /id="auto-theme-beijing"[\s\S]*id="health-thresholds-title"[\s\S]*id="geoip-settings-title"/);
   assert.match(adminHtml, /data-admin-panel="general"[\s\S]*id="geoip-settings-title"/);
   assert.match(adminHtml, /data-admin-view="site"/);
   assert.match(adminHtml, /data-i18n="deploy\.help"/);
   assert.match(adminStyles, /\.admin-callout\[hidden\]\s*\{\s*display:\s*none/s);
+  assert.match(adminStyles, /#routes-view\s*\{[\s\S]*1240px/);
+  assert.match(adminStyles, /\.admin-manager-panel \.route-composer-card/);
 });
 
 test("admin scripts only bind IDs shipped by the admin page", async () => {

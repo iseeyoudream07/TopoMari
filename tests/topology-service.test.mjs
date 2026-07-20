@@ -147,6 +147,12 @@ test("builds a live dashboard through the Komari client contract", async () => {
     title: "Test",
     refresh_interval_seconds: 10,
     history_hours: 1,
+    health_thresholds: {
+      warning_latency_ms: 20,
+      degraded_latency_ms: 100,
+      warning_loss_percent: 5,
+      degraded_loss_percent: 20,
+    },
     routes: [
       {
         id: "one",
@@ -187,6 +193,7 @@ test("builds a live dashboard through the Komari client contract", async () => {
   const dashboard = await buildLiveDashboard(fakeClient, config);
   assert.equal(dashboard.meta.mode, "live");
   assert.equal(dashboard.routes[0].edges[0].stats.latest, 42);
+  assert.equal(dashboard.routes[0].edges[0].stats.status, "warning");
   assert.equal(dashboard.routes[0].nodes[1].name, "Source");
   assert.equal(dashboard.summary.onlineNodes, 1);
   assert.equal(JSON.stringify(dashboard).includes("203.0.113.50"), false);

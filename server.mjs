@@ -15,6 +15,7 @@ import { KomariGeoIpService } from "./lib/komari-geoip.mjs";
 import { AgentRegistry } from "./lib/agent-registry.mjs";
 import { ProbeRateLimiter, ProbeValidationError, normalizeProbePayload } from "./lib/probe-ingest.mjs";
 import { ProbeStore } from "./lib/probe-store.mjs";
+import { resolveHealthThresholds } from "./lib/health-status.mjs";
 import { isDiagnosticApiPath, validateDashboardAuthConfig } from "./lib/security-policy.mjs";
 import { TopologyConfigStore } from "./lib/topology-config-store.mjs";
 import { sanitizeBranding, sanitizeSiteSettings } from "./lib/topology-config.mjs";
@@ -461,6 +462,7 @@ async function siteSettingsPayload({ csrfToken = "", includeGeoIpStatus = true }
   const { config, revision } = await topologyConfigStore.read();
   const payload = {
     ...sanitizeSiteSettings(config),
+    healthThresholds: resolveHealthThresholds(config.health_thresholds),
     ...await faviconState(),
     backgroundAssets: await themeBackgroundState(),
     faviconUrl: "/favicon",
@@ -628,6 +630,14 @@ async function handleAdminApi(request, response, url, principal) {
         }
       : { ...(current.config.theme_settings || {}) };
     const requestedGeoIp = body.geoIp ?? body.geo_ip ?? {};
+    let healthThresholds;
+    try {
+      healthThresholds = resolveHealthThresholds(
+        body.healthThresholds ?? body.health_thresholds ?? current.config.health_thresholds,
+      );
+    } catch (error) {
+      throw makeClientError(error);
+    }
     const site = sanitizeSiteSettings({
       ...current.config,
       ...body,
@@ -691,10 +701,12 @@ async function handleAdminApi(request, response, url, principal) {
       geo_ip_enabled: site.geoIp.enabled,
       geo_ip_provider: "maxmind",
       geo_ip_last_updated_at: currentSite.geoIp.lastUpdatedAt,
+      health_thresholds: healthThresholds,
     }, String(body.revision || ""));
     dashboardCache = { expiresAt: 0, value: null, promise: null };
     return json(response, 200, {
       ...site,
+      healthThresholds,
       geoIpStatus: await geoIpService.status(),
       komariApiKey: {
         configured: client.apiKeyConfigured,
@@ -857,7 +869,10 @@ async function handleApi(request, response, url) {
     if (probeId) {
       const config = await loadTopologyConfig(configPath);
       const edge = config.routes.flatMap((route) => route.edges).find((item) => item.probe_id === probeId);
-      return json(response, 200, probeStore.getEdgeStats(probeId, hours, edge?.health_thresholds));
+      return json(response, 200, probeStore.getEdgeStats(probeId, hours, resolveHealthThresholds({
+        ...(config.health_thresholds || {}),
+        ...(edge?.health_thresholds || {}),
+      })));
     }
     const uuid = url.searchParams.get("source_uuid") || "";
     const taskId = Number(url.searchParams.get("task_id"));
@@ -879,7 +894,10 @@ async function handleApi(request, response, url) {
         const taskIds = Array.isArray(item.task_ids) ? item.task_ids.map(Number) : [];
         return sourceUuid === uuid && (Number(item.task_id) === taskId || taskIds.includes(taskId));
       });
-    return json(response, 200, computeEdgeStats(payload, taskId, edge?.health_thresholds));
+    return json(response, 200, computeEdgeStats(payload, taskId, resolveHealthThresholds({
+      ...(config.health_thresholds || {}),
+      ...(edge?.health_thresholds || {}),
+    })));
   }
 
   const principal = requireAdmin(request, response);
