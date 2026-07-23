@@ -12,10 +12,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.8.4-ui1"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.8.4-ui1" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.4-ui1" />
-    <script type="module" src="/app.js?v=2.8.4-ui1"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.4-ui2"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.4-ui2" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.4-ui2" />
+    <script type="module" src="/app.js?v=2.8.4-ui2"></script>
   </head>
   <body>
     <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
@@ -107,7 +107,8 @@
           </section>
 
           <figure class="route-globe" aria-label="实时链路传输" data-i18n-aria-label="globe.title">
-            <canvas id="route-globe-canvas" role="img" aria-label="地球链路传输动画" data-i18n-aria-label="globe.aria">当前浏览器不支持链路地球动画。</canvas>
+            <canvas id="route-globe-canvas" role="img" tabindex="0" aria-describedby="route-globe-help" aria-label="地球链路传输动画" data-i18n-aria-label="globe.aria">当前浏览器不支持链路地球动画。</canvas>
+            <span id="route-globe-help" class="visually-hidden" data-i18n="globe.keyboardHelp">使用左右方向键旋转地球，也可以拖拽查看。</span>
             <div class="route-globe-topline">
               <div class="route-globe-counts" aria-live="polite">
                 <span><i class="route-globe-live-dot" aria-hidden="true"></i><strong id="route-globe-node-count">0</strong><span data-i18n="globe.nodes">节点</span></span>
@@ -119,6 +120,22 @@
       </section>
 
       <main>
+
+        <section class="glass-panel komari-monitor-panel" aria-labelledby="komari-monitor-heading">
+          <div class="panel-heading komari-monitor-heading">
+            <div>
+              <h2 id="komari-monitor-heading" data-i18n="komariMonitor.title">Komari 探针</h2>
+              <p data-i18n="komariMonitor.subtitle">实时主机状态与资源用量</p>
+            </div>
+            <span id="komari-monitor-summary" class="komari-monitor-summary" data-state="loading" data-i18n="stats.waiting">等待数据</span>
+          </div>
+          <div id="komari-node-grid" class="komari-node-grid" aria-live="polite">
+            <div class="komari-node-skeleton" aria-hidden="true"></div>
+            <div class="komari-node-skeleton" aria-hidden="true"></div>
+            <div class="komari-node-skeleton" aria-hidden="true"></div>
+            <div class="komari-node-skeleton" aria-hidden="true"></div>
+          </div>
+        </section>
 
         <section class="glass-panel topology-panel" aria-labelledby="topology-heading">
           <div class="panel-heading">
@@ -142,7 +159,7 @@
 
           <article class="glass-panel node-panel" aria-labelledby="node-heading">
             <div class="panel-heading compact">
-              <h2 id="node-heading" data-i18n="nodes.title">受监测节点</h2>
+              <h2 id="node-heading" data-i18n="nodes.title">链路节点</h2>
             </div>
             <div id="node-grid" class="node-grid"></div>
           </article>

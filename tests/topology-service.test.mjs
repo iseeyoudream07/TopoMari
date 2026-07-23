@@ -133,6 +133,7 @@ test("builds a complete demo dashboard from the shipped topology", async () => {
   assert.equal(dashboard.meta.customThemeColors, false);
   assert.equal(dashboard.meta.themeColors.lightAccent, "#a7622d");
   assert.equal(dashboard.meta.themeSettings.backgroundEnabled, false);
+  assert.equal(dashboard.meta.themeSettings.stopGlobeRotation, false);
   assert.equal(dashboard.meta.themeSettings.glassBlur, 18);
   assert.equal(dashboard.routes.length, 2);
   assert.equal(dashboard.summary.edges, 6);
@@ -140,6 +141,8 @@ test("builds a complete demo dashboard from the shipped topology", async () => {
   assert.equal(dashboard.routes[0].nodes[1].longitude, 139.6503);
   assert.ok(dashboard.routes.every((route) => route.edges.length === route.nodes.length - 1));
   assert.ok(dashboard.routes.flatMap((route) => route.edges).every((edge) => edge.stats.history.length > 10));
+  assert.equal(dashboard.komari.state, "ready");
+  assert.ok(dashboard.komari.nodes.length > 0);
 });
 
 test("builds a live dashboard through the Komari client contract", async () => {

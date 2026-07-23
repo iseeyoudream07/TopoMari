@@ -610,6 +610,7 @@ h2 {
 
 :root[data-visual-theme="glassmorphism"] .route-card,
 :root[data-visual-theme="glassmorphism"] .asset-node,
+:root[data-visual-theme="glassmorphism"] .komari-node-card,
 :root[data-visual-theme="glassmorphism"] .manager-button,
 :root[data-visual-theme="glassmorphism"] .route-list-item {
   border-color: color-mix(in srgb, var(--text) var(--site-glass-border-opacity), transparent);
@@ -631,6 +632,7 @@ h2 {
 :root[data-visual-theme="glassmorphism"] .route-card,
 :root[data-visual-theme="glassmorphism"] .topology-node,
 :root[data-visual-theme="glassmorphism"] .asset-node,
+:root[data-visual-theme="glassmorphism"] .komari-node-card,
 :root[data-visual-theme="glassmorphism"] .link-row,
 :root[data-visual-theme="glassmorphism"] .route-library,
 :root[data-visual-theme="glassmorphism"] .deployment-panel,
@@ -662,7 +664,8 @@ h2 {
   :root[data-visual-theme="glassmorphism"] .login-card,
   :root[data-visual-theme="glassmorphism"] .settings-card,
   :root[data-visual-theme="glassmorphism"] .route-card,
-  :root[data-visual-theme="glassmorphism"] .asset-node {
+  :root[data-visual-theme="glassmorphism"] .asset-node,
+  :root[data-visual-theme="glassmorphism"] .komari-node-card {
     background: color-mix(in srgb, var(--surface-solid) 92%, var(--bg));
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

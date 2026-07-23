@@ -1,5 +1,6 @@
-import { editorApi } from "./frontend/api-client.js?v=2.8.4-ui1";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui1";
+import { editorApi } from "./frontend/api-client.js?v=2.8.4-ui2";
+import { resolveDeploymentTarget } from "./frontend/deployment-target.js?v=2.8.4-ui2";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui2";
 
 const elements = {
   toggle: document.getElementById("manager-toggle"),
@@ -47,6 +48,7 @@ let selectedIndex = 0;
 let isDirty = false;
 let onSavedCallback = () => {};
 let lastDeployEdge = "";
+let lastDeployTargetKey = "";
 let noticeTimer = null;
 let probeStatusTimer = null;
 let probeStatusLoading = false;
@@ -330,6 +332,10 @@ function defaultAgentFor(item) {
   return item.edge.agent_id || slug(sourceNode.label || sourceNode.id, `agent-${item.edgeIndex + 1}`);
 }
 
+function deploymentTargetFor(item) {
+  return resolveDeploymentTarget(item?.route, item?.edgeIndex, bootstrap?.nodes || []);
+}
+
 function renderDeploymentOptions() {
   const options = privateEdges();
   const previous = elements.deployEdge.value;
@@ -342,6 +348,17 @@ function renderDeploymentOptions() {
   if (selected && lastDeployEdge !== selected.edge.probe_id) {
     elements.deployAgent.value = defaultAgentFor(selected);
     lastDeployEdge = selected.edge.probe_id;
+  }
+  if (selected) {
+    const target = deploymentTargetFor(selected);
+    const targetKey = `${selected.edge.probe_id}:${target.nodeId}:${target.host}`;
+    if (lastDeployTargetKey !== targetKey) {
+      elements.deployHost.value = target.host;
+      lastDeployTargetKey = targetKey;
+    }
+  } else if (lastDeployTargetKey) {
+    elements.deployHost.value = "";
+    lastDeployTargetKey = "";
   }
 }
 
@@ -512,7 +529,11 @@ async function generateDeploymentCommand() {
   }
   const item = selectedPrivateEdge();
   const agentId = elements.deployAgent.value.trim();
-  const targetHost = elements.deployHost.value.trim();
+  const enteredTargetHost = elements.deployHost.value.trim();
+  const targetHost = enteredTargetHost.startsWith("[") && enteredTargetHost.endsWith("]")
+    ? enteredTargetHost.slice(1, -1).trim()
+    : enteredTargetHost;
+  elements.deployHost.value = targetHost;
   const targetPort = Number(elements.deployPort.value);
   const interval = Number(elements.deployInterval.value);
   const timeout = Number(elements.deployTimeout.value);
@@ -700,6 +721,7 @@ function bindEvents({ embedded = false } = {}) {
   elements.routeDelete.addEventListener("click", deleteRoute);
   elements.deployEdge.addEventListener("change", () => {
     lastDeployEdge = "";
+    lastDeployTargetKey = "";
     renderDeploymentOptions();
     elements.commandBox.hidden = true;
     setDeploymentStatus("deploy.validity");
@@ -744,6 +766,7 @@ function syncSiteSettings(site, nextRevision) {
     dark_accent: site.themeColors?.darkAccent || "#e4a35f",
   };
   draft.theme_settings = {
+    stop_globe_rotation: site.themeSettings?.stopGlobeRotation === true,
     background_enabled: site.themeSettings?.backgroundEnabled === true,
     background_type: site.themeSettings?.backgroundType || "image",
     light_background: site.themeSettings?.lightBackground || "",
@@ -768,6 +791,23 @@ function syncSiteSettings(site, nextRevision) {
   if (bootstrap?.config) bootstrap.config = clone(draft);
 }
 
+async function refreshInventory() {
+  if (!bootstrap) return true;
+  try {
+    const inventory = await editorApi.inventory();
+    bootstrap.nodes = inventory.nodes || [];
+    bootstrap.tasks = inventory.tasks || [];
+    lastDeployTargetKey = "";
+    renderDeploymentOptions();
+    return true;
+  } catch {
+    bootstrap.nodes = (bootstrap.nodes || []).map(({ targetHost: _targetHost, ...node }) => node);
+    lastDeployTargetKey = "";
+    renderDeploymentOptions();
+    return false;
+  }
+}
+
 async function loadBootstrap() {
   const payload = await editorApi.bootstrap();
   bootstrap = payload;
@@ -778,6 +818,7 @@ async function loadBootstrap() {
   selectedKind = "node";
   selectedIndex = 0;
   lastDeployEdge = "";
+  lastDeployTargetKey = "";
   markSaved();
   renderEditor();
 }
@@ -801,6 +842,7 @@ export async function initTopologyEditor({ onSaved = () => {}, embedded = false 
       available: true,
       reload: loadBootstrap,
       syncSiteSettings,
+      refreshInventory,
     };
   } catch (error) {
     if (error.status === 404) return { available: false };

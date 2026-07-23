@@ -146,6 +146,9 @@ export const editorApi = Object.freeze({
   bootstrap() {
     return requestJson(`/api/editor/bootstrap?t=${Date.now()}`);
   },
+  inventory() {
+    return requestJson(`/api/editor/inventory?t=${Date.now()}`);
+  },
   probeStatus() {
     return requestJson(`/api/probes?t=${Date.now()}`);
   },

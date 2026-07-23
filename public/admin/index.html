@@ -11,11 +11,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400..700&amp;family=Noto+Serif+SC:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <script src="/frontend/preference-bootstrap.js?v=2.8.4-ui1"></script>
-    <link rel="stylesheet" href="/styles.css?v=2.8.4-ui1" />
-    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.4-ui1" />
-    <link rel="stylesheet" href="/admin.css?v=2.8.4-ui1" />
-    <script type="module" src="/admin.js?v=2.8.4-ui1"></script>
+    <script src="/frontend/preference-bootstrap.js?v=2.8.4-ui2"></script>
+    <link rel="stylesheet" href="/styles.css?v=2.8.4-ui2" />
+    <link rel="stylesheet" href="/frontend/theme.css?v=2.8.4-ui2" />
+    <link rel="stylesheet" href="/admin.css?v=2.8.4-ui2" />
+    <script type="module" src="/admin.js?v=2.8.4-ui2"></script>
   </head>
   <body class="admin-body">
     <div id="site-background" class="site-background" data-status="idle" hidden aria-hidden="true">
@@ -160,12 +160,12 @@
             </div>
             <div class="deployment-panel">
               <div class="manager-subheading deployment-heading">
-                <div><span class="manager-label" data-i18n="deploy.title">私有探针部署</span><small data-i18n="deploy.help">目标地址仅用于生成命令，不会保存到面板</small></div>
+                <div><span class="manager-label" data-i18n="deploy.title">私有探针部署</span><small data-i18n="deploy.help">自动使用下一台 Komari 主机的 IPv4，缺失时使用 IPv6；地址不会保存到面板</small></div>
               </div>
               <div class="deployment-grid">
                 <label><span data-i18n="deploy.edge">私有探针链路</span><select id="deploy-edge"></select></label>
                 <label><span data-i18n="deploy.agentId">探针 Agent ID</span><input id="deploy-agent" type="text" maxlength="128" spellcheck="false" /></label>
-                <label><span data-i18n="deploy.host">目标主机 / IP</span><input id="deploy-host" type="text" maxlength="253" placeholder="例如 203.0.113.10" data-i18n-placeholder="deploy.hostPlaceholder" spellcheck="false" /></label>
+                <label><span data-i18n="deploy.host">目标主机 / IP</span><input id="deploy-host" type="text" maxlength="253" placeholder="例如 203.0.113.10 或 2001:db8::10" data-i18n-placeholder="deploy.hostPlaceholder" spellcheck="false" /></label>
                 <label><span data-i18n="deploy.port">目标端口</span><input id="deploy-port" type="number" min="1" max="65535" value="443" /></label>
                 <label><span data-i18n="deploy.interval">采样间隔（秒）</span><input id="deploy-interval" type="number" min="5" max="3600" value="30" /></label>
                 <label><span data-i18n="deploy.timeout">超时（秒）</span><input id="deploy-timeout" type="number" min="1" max="60" value="5" /></label>
@@ -321,7 +321,7 @@
             <div>
               <p class="admin-kicker" data-i18n="admin.themeSettingsPath">主题设置</p>
               <h1 data-i18n="themeSettings.title">主题设置</h1>
-              <p data-i18n="themeSettings.description">精细调整 Glassmorphism 的背景媒体、毛玻璃强度、边框和圆角；TopoMari 原版始终保留内置背景。</p>
+              <p data-i18n="themeSettings.description">配置地球动效，并精细调整 Glassmorphism 的背景媒体、毛玻璃强度、边框和圆角。</p>
             </div>
           </div>
 
@@ -383,12 +383,20 @@
               </div>
             </section>
 
+            </fieldset>
+
+            <section class="settings-card" aria-labelledby="stop-globe-rotation-title">
+              <label class="settings-switch-row">
+                <span><strong id="stop-globe-rotation-title" data-i18n="themeSettings.stopGlobeRotation">停止地球旋转</strong><small data-i18n="themeSettings.stopGlobeRotationHelp">开启后地球默认不自动旋转，用户仍可手动拖拽查看。</small></span>
+                <input id="stop-globe-rotation" type="checkbox" role="switch" />
+              </label>
+            </section>
+
             <div class="site-save-row theme-save-row">
               <button id="theme-settings-reset" class="manager-button ghost" type="button" data-i18n="themeSettings.reset">恢复主题设置默认值</button>
               <span id="theme-settings-save-status" class="deployment-status"></span>
               <button id="theme-settings-save" class="manager-button primary" type="submit" data-i18n="themeSettings.save">保存主题设置</button>
             </div>
-            </fieldset>
           </form>
         </section>
 

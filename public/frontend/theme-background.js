@@ -1,6 +1,7 @@
 const BACKGROUND_TYPES = new Set(["image", "video"]);
 
 export const DEFAULT_THEME_SETTINGS = Object.freeze({
+  stopGlobeRotation: false,
   backgroundEnabled: false,
   backgroundType: "image",
   lightBackground: "",
@@ -44,6 +45,9 @@ export function normalizeThemeSettings(value) {
   const source = value?.themeSettings ?? value?.theme_settings ?? value ?? {};
   const requestedType = String(source.backgroundType ?? source.background_type ?? "image").toLowerCase();
   return {
+    stopGlobeRotation: source.stopGlobeRotation === undefined
+      ? source.stop_globe_rotation === true
+      : source.stopGlobeRotation === true,
     backgroundEnabled: source.backgroundEnabled === undefined
       ? source.background_enabled === true
       : source.backgroundEnabled === true,

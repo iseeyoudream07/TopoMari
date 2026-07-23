@@ -18,7 +18,7 @@ import { ProbeStore } from "./lib/probe-store.mjs";
 import { resolveHealthThresholds } from "./lib/health-status.mjs";
 import { isDiagnosticApiPath, validateDashboardAuthConfig } from "./lib/security-policy.mjs";
 import { TopologyConfigStore } from "./lib/topology-config-store.mjs";
-import { sanitizeBranding, sanitizeSiteSettings } from "./lib/topology-config.mjs";
+import { mergeThemeSettings, sanitizeBranding, sanitizeSiteSettings } from "./lib/topology-config.mjs";
 import {
   buildDemoDashboard,
   buildLiveDashboard,
@@ -202,6 +202,13 @@ function json(response, statusCode, value, extraHeaders = {}) {
   response.end(body);
 }
 
+function publicApiErrorMessage(pathname) {
+  if (pathname === "/api/dashboard") return "Unable to load dashboard data";
+  if (pathname === "/api/edge-stats") return "Unable to load edge statistics";
+  if (pathname === "/api/site") return "Unable to load public site settings";
+  return "";
+}
+
 async function getDashboard() {
   if (dashboardCache.value && dashboardCache.expiresAt > Date.now()) {
     return dashboardCache.value;
@@ -250,11 +257,16 @@ async function editorInventory() {
     const dashboard = await getDashboard();
     return { nodes: dashboard.nodes || [], tasks: dashboard.tasks || [] };
   }
-  const [nodes, tasks] = await Promise.all([
+  const [nodes, tasks, nodeTargets] = await Promise.all([
     client.getNodes().then(normalizeNodeList),
     client.getPingTasks().then(normalizePingTasks),
+    client.getNodeIpInventory().catch(() => []),
   ]);
-  return { nodes, tasks };
+  const targetById = new Map(nodeTargets.map((node) => [String(node.id || ""), String(node.targetHost || "")]));
+  return {
+    nodes: nodes.map((node) => targetById.has(node.id) ? { ...node, targetHost: targetById.get(node.id) } : node),
+    tasks,
+  };
 }
 
 async function handleEditorApi(request, response, url, principal) {
@@ -278,6 +290,11 @@ async function handleEditorApi(request, response, url, principal) {
       agentRegistry: await agentRegistry.status(),
       probeEdges: probeStore.getOverview(),
     });
+  }
+
+  if (url.pathname === "/api/editor/inventory") {
+    if (request.method !== "GET") return methodNotAllowed(response, ["GET"]);
+    return json(response, 200, await editorInventory());
   }
 
   if (url.pathname === "/api/editor/branding" && request.method === "GET") {
@@ -622,13 +639,15 @@ async function handleAdminApi(request, response, url, principal) {
     const current = await topologyConfigStore.read();
     const currentSite = sanitizeSiteSettings(current.config);
     const requestedVisualTheme = sanitizeSiteSettings({ ...current.config, ...body }).visualTheme;
-    const mergedThemeSettings = requestedVisualTheme === "glassmorphism"
-      ? {
-          ...(current.config.theme_settings || {}),
-          ...(body.theme_settings || {}),
-          ...(body.themeSettings || {}),
-        }
-      : { ...(current.config.theme_settings || {}) };
+    const incomingThemeSettings = {
+      ...(body.theme_settings || {}),
+      ...(body.themeSettings || {}),
+    };
+    const mergedThemeSettings = mergeThemeSettings(
+      current.config.theme_settings,
+      incomingThemeSettings,
+      requestedVisualTheme,
+    );
     const requestedGeoIp = body.geoIp ?? body.geo_ip ?? {};
     let healthThresholds;
     try {
@@ -687,6 +706,7 @@ async function handleAdminApi(request, response, url, principal) {
         dark_accent: site.themeColors.darkAccent,
       },
       theme_settings: {
+        stop_globe_rotation: site.themeSettings.stopGlobeRotation,
         background_enabled: site.themeSettings.backgroundEnabled,
         background_type: site.themeSettings.backgroundType,
         light_background: site.themeSettings.lightBackground,
@@ -1038,8 +1058,9 @@ async function serveStatic(response, pathname) {
 }
 
 const server = createServer(async (request, response) => {
+  let url = null;
   try {
-    const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
+    url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
     if (url.pathname === "/api/ingest") return await handleIngest(request, response);
     if (url.pathname === "/api/enroll") return await handleEnroll(request, response);
     if (url.pathname === "/favicon" || url.pathname === "/favicon.ico") return await serveFavicon(response);
@@ -1058,7 +1079,7 @@ const server = createServer(async (request, response) => {
     const status = Number(error?.status) || (error instanceof KomariError ? error.status : 500);
     console.error(`[${new Date().toISOString()}]`, error);
     return json(response, status, {
-      error: error.message || "Internal server error",
+      error: publicApiErrorMessage(url?.pathname) || error.message || "Internal server error",
       mode: demoMode ? "demo" : "live",
     });
   }

@@ -1,4 +1,30 @@
 const DEG_TO_RAD = Math.PI / 180;
+const AUTO_ROTATION_DEGREES_PER_SECOND = 2.4;
+const MAX_AUTO_ROTATION_FRAME_MS = 100;
+const DRAG_DEGREES_PER_PIXEL = 0.35;
+
+export function normalizeGlobeLongitude(value) {
+  const longitude = Number(value);
+  if (!Number.isFinite(longitude)) return 0;
+  return ((longitude + 180) % 360 + 360) % 360 - 180;
+}
+
+export function advanceGlobeLongitude(
+  longitude,
+  elapsedMilliseconds,
+  { rotationStopped = false, reducedMotion = false, dragging = false } = {},
+) {
+  const current = normalizeGlobeLongitude(longitude);
+  const elapsed = Math.max(0, Number(elapsedMilliseconds) || 0);
+  if (rotationStopped || reducedMotion || dragging || elapsed === 0) return current;
+  return normalizeGlobeLongitude(current + (elapsed / 1_000) * AUTO_ROTATION_DEGREES_PER_SECOND);
+}
+
+export function globeLongitudeForHorizontalDrag(startLongitude, deltaPixels) {
+  const delta = Number(deltaPixels);
+  if (!Number.isFinite(delta)) return normalizeGlobeLongitude(startLongitude);
+  return normalizeGlobeLongitude(startLongitude - delta * DRAG_DEGREES_PER_PIXEL);
+}
 
 const LAND_POLYGONS = [
   [[-168, 70], [-150, 58], [-132, 55], [-125, 48], [-124, 39], [-116, 31], [-106, 23], [-97, 18], [-88, 20], [-82, 27], [-80, 36], [-66, 45], [-58, 52], [-73, 59], [-94, 66], [-120, 72], [-145, 72]],
@@ -361,11 +387,20 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
   let links = [];
   let nodes = [];
   let centerLongitude = -25;
+  let hasFocusedRoutes = false;
   let frame = 0;
   let visible = true;
   let destroyed = false;
+  let rotationStopped = false;
+  let activePointerId = null;
+  let dragStartX = 0;
+  let dragStartLongitude = centerLongitude;
+  let lastAnimationTime = null;
   let palette = readPalette(canvas);
   let reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  canvas.dataset.rotationStopped = "false";
+  canvas.dataset.dragging = "false";
 
   function resize() {
     const bounds = canvas.getBoundingClientRect();
@@ -581,24 +616,39 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
     if (width <= 1 || height <= 1) return;
     context.clearRect(0, 0, width, height);
     const radius = Math.max(92, Math.min(width * 0.405, height * 0.445));
-    const drift = reducedMotion.matches ? 0 : Math.sin(time / 12_000) * 3.4;
     const metrics = {
       width,
       height,
       radius,
       centerX: width * (width > 520 ? 0.57 : 0.52),
       centerY: height * 0.53,
-      longitude: centerLongitude + drift,
+      longitude: centerLongitude,
     };
     drawGlobe(metrics);
     links.forEach((link, index) => drawArc(link, index, metrics, time));
     nodes.forEach((node, index) => drawNode(node, index, metrics, time));
     canvas.dataset.ready = "true";
+    canvas.dataset.viewLongitude = centerLongitude.toFixed(2);
   }
 
   function animate(time) {
     frame = 0;
-    if (destroyed || !visible || document.visibilityState === "hidden") return;
+    if (destroyed || !visible || document.visibilityState === "hidden") {
+      lastAnimationTime = null;
+      return;
+    }
+    if (lastAnimationTime !== null) {
+      centerLongitude = advanceGlobeLongitude(
+        centerLongitude,
+        Math.min(MAX_AUTO_ROTATION_FRAME_MS, Math.max(0, time - lastAnimationTime)),
+        {
+          rotationStopped,
+          reducedMotion: reducedMotion.matches,
+          dragging: activePointerId !== null,
+        },
+      );
+    }
+    lastAnimationTime = time;
     draw(time);
     if (!reducedMotion.matches) frame = requestAnimationFrame(animate);
   }
@@ -611,8 +661,13 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
 
   function update(routes = []) {
     links = buildRouteLinks(routes);
-    centerLongitude = focusLongitude(links);
-    canvas.dataset.focusLongitude = centerLongitude.toFixed(2);
+    const focusedLongitude = focusLongitude(links);
+    canvas.dataset.focusLongitude = focusedLongitude.toFixed(2);
+    if (!hasFocusedRoutes && links.length > 0) {
+      centerLongitude = normalizeGlobeLongitude(focusedLongitude);
+      hasFocusedRoutes = true;
+      lastAnimationTime = null;
+    }
     const uniqueNodes = new Map();
     links.forEach((link) => {
       uniqueNodes.set(link.from.key, link.from);
@@ -625,14 +680,81 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
     scheduleFrame();
   }
 
+  function setRotationStopped(value) {
+    const nextValue = value === true;
+    if (rotationStopped === nextValue) return;
+    rotationStopped = nextValue;
+    canvas.dataset.rotationStopped = String(rotationStopped);
+    lastAnimationTime = null;
+    scheduleFrame();
+  }
+
+  function startPointerDrag(event) {
+    if (destroyed || activePointerId !== null || event.isPrimary === false) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    activePointerId = event.pointerId;
+    dragStartX = event.clientX;
+    dragStartLongitude = centerLongitude;
+    canvas.dataset.dragging = "true";
+    lastAnimationTime = null;
+    try {
+      canvas.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Pointer capture is an enhancement; dragging still works while the pointer remains over the canvas.
+    }
+    event.preventDefault?.();
+  }
+
+  function movePointerDrag(event) {
+    if (activePointerId === null || event.pointerId !== activePointerId) return;
+    centerLongitude = globeLongitudeForHorizontalDrag(dragStartLongitude, event.clientX - dragStartX);
+    canvas.dataset.viewLongitude = centerLongitude.toFixed(2);
+    scheduleFrame();
+    event.preventDefault?.();
+  }
+
+  function finishPointerDrag(event) {
+    if (activePointerId === null || event.pointerId !== activePointerId) return;
+    const pointerId = activePointerId;
+    activePointerId = null;
+    canvas.dataset.dragging = "false";
+    lastAnimationTime = null;
+    try {
+      if (canvas.hasPointerCapture?.(pointerId)) canvas.releasePointerCapture?.(pointerId);
+    } catch {
+      // Pointer capture may already have been released by pointerup or pointercancel.
+    }
+    scheduleFrame();
+    event.preventDefault?.();
+  }
+
+  function handleKeyboard(event) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    centerLongitude = normalizeGlobeLongitude(centerLongitude + (event.key === "ArrowLeft" ? -8 : 8));
+    canvas.dataset.viewLongitude = centerLongitude.toFixed(2);
+    lastAnimationTime = null;
+    scheduleFrame();
+    event.preventDefault?.();
+  }
+
+  canvas.addEventListener("pointerdown", startPointerDrag);
+  canvas.addEventListener("pointermove", movePointerDrag);
+  canvas.addEventListener("pointerup", finishPointerDrag);
+  canvas.addEventListener("pointercancel", finishPointerDrag);
+  canvas.addEventListener("lostpointercapture", finishPointerDrag);
+  canvas.addEventListener("keydown", handleKeyboard);
+
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(canvas);
   const intersectionObserver = new IntersectionObserver((entries) => {
     visible = entries[0]?.isIntersecting !== false;
-    if (visible) scheduleFrame();
-    else if (frame) {
-      cancelAnimationFrame(frame);
+    if (visible) {
+      lastAnimationTime = null;
+      scheduleFrame();
+    } else {
+      if (frame) cancelAnimationFrame(frame);
       frame = 0;
+      lastAnimationTime = null;
     }
   }, { rootMargin: "80px" });
   intersectionObserver.observe(canvas);
@@ -644,21 +766,49 @@ export function createRouteGlobe(canvas, { countElement = null, nodeCountElement
     attributes: true,
     attributeFilter: ["data-theme", "data-visual-theme", "style"],
   });
-  const visibilityListener = () => scheduleFrame();
-  const motionListener = () => scheduleFrame();
+  const visibilityListener = () => {
+    lastAnimationTime = null;
+    if (document.visibilityState === "hidden") {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      return;
+    }
+    scheduleFrame();
+  };
+  const motionListener = () => {
+    lastAnimationTime = null;
+    scheduleFrame();
+  };
   document.addEventListener("visibilitychange", visibilityListener);
   reducedMotion.addEventListener?.("change", motionListener);
   resize();
   scheduleFrame();
 
   return {
+    setRotationStopped,
     update,
     destroy() {
       destroyed = true;
       if (frame) cancelAnimationFrame(frame);
+      const pointerId = activePointerId;
+      activePointerId = null;
+      canvas.dataset.dragging = "false";
+      if (pointerId !== null) {
+        try {
+          if (canvas.hasPointerCapture?.(pointerId)) canvas.releasePointerCapture?.(pointerId);
+        } catch {
+          // The browser may already have released capture while the component is being removed.
+        }
+      }
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
       themeObserver.disconnect();
+      canvas.removeEventListener("pointerdown", startPointerDrag);
+      canvas.removeEventListener("pointermove", movePointerDrag);
+      canvas.removeEventListener("pointerup", finishPointerDrag);
+      canvas.removeEventListener("pointercancel", finishPointerDrag);
+      canvas.removeEventListener("lostpointercapture", finishPointerDrag);
+      canvas.removeEventListener("keydown", handleKeyboard);
       document.removeEventListener("visibilitychange", visibilityListener);
       reducedMotion.removeEventListener?.("change", motionListener);
     },

@@ -12,6 +12,7 @@
     "dark_accent": "#e4a35f"
   },
   "theme_settings": {
+    "stop_globe_rotation": false,
     "background_enabled": false,
     "background_type": "image",
     "light_background": "",

@@ -1,6 +1,6 @@
-import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui1";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui1";
-import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui1";
+import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui2";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui2";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui2";
 import {
   applySiteTheme,
   defaultVisualThemeColors,
@@ -11,7 +11,7 @@ import {
   DEFAULT_THEME_SETTINGS,
   normalizeThemeSettings,
 } from "./frontend/theme-background.js";
-import { initTopologyEditor } from "./editor.js?v=2.8.4-ui1";
+import { initTopologyEditor } from "./editor.js?v=2.8.4-ui2";
 
 const elements = {
   loginGate: document.getElementById("login-gate"),
@@ -46,6 +46,7 @@ const elements = {
   themeSettingsReset: document.getElementById("theme-settings-reset"),
   themeSettingsLock: document.getElementById("theme-settings-lock"),
   themeSettingsControls: document.getElementById("theme-settings-controls"),
+  stopGlobeRotation: document.getElementById("stop-globe-rotation"),
   backgroundEnabled: document.getElementById("background-enabled"),
   backgroundType: document.getElementById("background-type"),
   backgroundSourceFields: document.getElementById("background-source-fields"),
@@ -385,6 +386,7 @@ function updateThemeAssetStatus() {
 
 function themeSettingsDraft() {
   return normalizeThemeSettings({
+    stopGlobeRotation: elements.stopGlobeRotation.checked,
     backgroundEnabled: elements.backgroundEnabled.checked,
     backgroundType: elements.backgroundType.value,
     lightBackground: elements.lightBackgroundSource.value,
@@ -407,6 +409,7 @@ function previewThemeSettings() {
 
 function setThemeSettingsForm(settingsValue) {
   const settings = normalizeThemeSettings(settingsValue);
+  elements.stopGlobeRotation.checked = settings.stopGlobeRotation;
   elements.backgroundEnabled.checked = settings.backgroundEnabled;
   elements.backgroundType.value = settings.backgroundType;
   elements.lightBackgroundSource.value = settings.lightBackground;
@@ -584,6 +587,7 @@ elements.themeColorsReset.addEventListener("click", () => {
 ].forEach((input) => input.addEventListener("input", validateHealthThresholdInputs));
 
 [
+  elements.stopGlobeRotation,
   elements.backgroundEnabled,
   elements.backgroundType,
 ].forEach((input) => input.addEventListener("change", previewThemeSettings));
@@ -609,10 +613,6 @@ elements.themeSettingsReset.addEventListener("click", () => {
 
 async function persistThemeSettings(noticeKey = "themeSettings.saved") {
   if (!siteState) return null;
-  if (!glassmorphismSettingsActive()) {
-    showNotice(t("themeSettings.exclusiveNotice"), "error");
-    return null;
-  }
   elements.themeSettingsSave.disabled = true;
   elements.themeSettingsSaveStatus.textContent = t("site.saving");
   try {
@@ -795,7 +795,11 @@ elements.komariApiKeySave.addEventListener("click", async () => {
     const site = await adminApi.saveKomariApiKey(apiKey, session.csrfToken);
     fillSiteForm(site);
     editorController?.syncSiteSettings?.(site, site.revision);
-    showNotice(t("komariApiKey.saved"));
+    const inventoryReady = await editorController?.refreshInventory?.();
+    showNotice(
+      t(inventoryReady === false ? "komariApiKey.savedInventoryUnavailable" : "komariApiKey.saved"),
+      inventoryReady === false ? "error" : "success",
+    );
   } catch (error) {
     if (!await handleUnauthorized(error)) showNotice(error.message, "error");
     updateKomariApiKeyStatus(siteState);
@@ -811,7 +815,11 @@ elements.komariApiKeyClear.addEventListener("click", async () => {
     const site = await adminApi.clearKomariApiKey(session.csrfToken);
     fillSiteForm(site);
     editorController?.syncSiteSettings?.(site, site.revision);
-    showNotice(t("komariApiKey.cleared"));
+    const inventoryReady = await editorController?.refreshInventory?.();
+    showNotice(
+      t(inventoryReady === false ? "komariApiKey.clearedInventoryUnavailable" : "komariApiKey.cleared"),
+      inventoryReady === false ? "error" : "success",
+    );
   } catch (error) {
     if (!await handleUnauthorized(error)) showNotice(error.message, "error");
     updateKomariApiKeyStatus(siteState);

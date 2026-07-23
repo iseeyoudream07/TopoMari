@@ -12,6 +12,8 @@ import {
   resolveThemeBackgroundSource,
   supportsThemeDetails,
 } from "../public/frontend/theme-background.js";
+import { formatMonitorBytes } from "../public/frontend/komari-monitor.js";
+import { resolveDeploymentTarget } from "../public/frontend/deployment-target.js";
 
 const indexUrl = new URL("../public/index.html", import.meta.url);
 const adminIndexUrl = new URL("../public/admin/index.html", import.meta.url);
@@ -27,6 +29,7 @@ const preferenceBootstrapUrl = new URL("../public/frontend/preference-bootstrap.
 const siteThemeUrl = new URL("../public/frontend/site-theme.js", import.meta.url);
 const themeBackgroundUrl = new URL("../public/frontend/theme-background.js", import.meta.url);
 const routeGlobeUrl = new URL("../public/frontend/route-globe.js", import.meta.url);
+const komariMonitorUrl = new URL("../public/frontend/komari-monitor.js", import.meta.url);
 const serverUrl = new URL("../server.mjs", import.meta.url);
 
 test("ships persistent Chinese, English, light, and dark preferences", async () => {
@@ -188,6 +191,7 @@ test("normalizes visual theme presets and custom colors in the frontend", () => 
 
 test("normalizes public background and glass controls without unsafe URLs", () => {
   assert.deepEqual(normalizeThemeSettings({
+    stopGlobeRotation: true,
     backgroundEnabled: true,
     backgroundType: "video",
     lightBackground: "local:light",
@@ -199,6 +203,7 @@ test("normalizes public background and glass controls without unsafe URLs", () =
     glassBorder: 44,
     cornerRadius: 22,
   }), {
+    stopGlobeRotation: true,
     backgroundEnabled: true,
     backgroundType: "video",
     lightBackground: "local:light",
@@ -215,6 +220,27 @@ test("normalizes public background and glass controls without unsafe URLs", () =
   assert.equal(supportsThemeDetails("topomari"), false);
 });
 
+test("formats Komari monitor bytes while preserving zero values", () => {
+  assert.equal(formatMonitorBytes(0), "0 B");
+  assert.match(formatMonitorBytes(1024), /1 KiB/);
+  assert.match(formatMonitorBytes(2048, { rate: true }), /2 KiB\/s/);
+  assert.equal(formatMonitorBytes(null), "—");
+});
+
+test("selects the next topology node as the private probe target", () => {
+  const route = { nodes: [{ id: "relay" }, { id: "exit" }, { id: "internet" }] };
+  const inventory = [
+    { id: "relay", targetHost: "192.0.2.1" },
+    { id: "exit", targetHost: "2001:4860:4860::8888" },
+    { id: "internet", targetHost: "198.51.100.99" },
+  ];
+  assert.deepEqual(resolveDeploymentTarget(route, 0, inventory), {
+    nodeId: "exit",
+    host: "2001:4860:4860::8888",
+  });
+  assert.deepEqual(resolveDeploymentTarget(route, 1, inventory), { nodeId: "internet", host: "" });
+});
+
 test("ships the compact route-globe overview and Glassmorphism-only detail controls", async () => {
   const [html, app, globe, adminHtml, admin, themeBackground, server] = await Promise.all([
     readFile(indexUrl, "utf8"),
@@ -228,9 +254,14 @@ test("ships the compact route-globe overview and Glassmorphism-only detail contr
 
   assert.equal([...html.matchAll(/class="stat-card"/g)].length, 6);
   assert.match(html, /id="route-globe-canvas"/);
+  assert.match(html, /id="route-globe-canvas"[^>]*tabindex="0"[^>]*aria-describedby="route-globe-help"/);
+  assert.match(html, /id="komari-node-grid"/);
+  assert.ok(html.indexOf('id="komari-node-grid"') < html.indexOf('id="topology-routes"'));
   assert.match(html, /id="stat-alerts"/);
   assert.match(app, /createRouteGlobe/);
   assert.match(app, /routeGlobe\?\.update\(routes \|\| \[\]\)/);
+  assert.match(app, /renderKomariMonitor/);
+  assert.match(app, /setRotationStopped\(themeSettings\.stopGlobeRotation\)/);
   assert.match(globe, /buildRouteLinks/);
   assert.match(globe, /requestAnimationFrame/);
   assert.match(globe, /--globe-text/);
@@ -238,6 +269,8 @@ test("ships the compact route-globe overview and Glassmorphism-only detail contr
   assert.doesNotMatch(globe, /\bfetch\s*\(/);
   assert.match(adminHtml, /id="theme-settings-lock"/);
   assert.match(adminHtml, /id="theme-settings-controls"/);
+  assert.match(adminHtml, /id="stop-globe-rotation"/);
+  assert.match(adminHtml, /id="theme-settings-controls"[\s\S]*<\/fieldset>[\s\S]*id="stop-globe-rotation"/);
   assert.match(admin, /glassmorphismSettingsActive/);
   assert.match(admin, /themeSettings\.exclusiveNotice/);
   assert.match(themeBackground, /supportsThemeDetails\(root\.dataset\.visualTheme\)/);
@@ -284,16 +317,18 @@ test("admin scripts only bind IDs shipped by the admin page", async () => {
 });
 
 test("keeps browser requests behind the frontend API client", async () => {
-  const [app, admin, editor, api] = await Promise.all([
+  const [app, admin, editor, monitor, api] = await Promise.all([
     readFile(appUrl, "utf8"),
     readFile(adminUrl, "utf8"),
     readFile(editorUrl, "utf8"),
+    readFile(komariMonitorUrl, "utf8"),
     readFile(apiUrl, "utf8"),
   ]);
 
   assert.doesNotMatch(app, /\bfetch\s*\(/);
   assert.doesNotMatch(admin, /\bfetch\s*\(/);
   assert.doesNotMatch(editor, /\bfetch\s*\(/);
+  assert.doesNotMatch(monitor, /\bfetch\s*\(/);
   assert.match(api, /\bfetch\s*\(/);
   assert.match(app, /dashboardApi\.snapshot/);
   assert.match(admin, /authApi\.login/);
@@ -304,6 +339,8 @@ test("serves the public dashboard without an authentication challenge and gates 
   const server = await readFile(serverUrl, "utf8");
 
   assert.match(server, /url\.pathname === "\/api\/dashboard"/);
+  assert.match(server, /publicApiErrorMessage/);
+  assert.match(server, /Unable to load dashboard data/);
   assert.match(server, /const principal = requireAdmin\(request, response\)/);
   assert.match(server, /url\.pathname\.startsWith\("\/api\/admin\/"\)/);
   assert.match(server, /url\.pathname\.startsWith\("\/api\/editor\/"\)/);
@@ -318,10 +355,12 @@ test("translates static and parameterized dashboard copy", () => {
   setLanguage("zh-CN");
   assert.equal(t("stats.routes"), "活动链路");
   assert.equal(t("stats.nodesOffline", { count: 2 }), "2 个节点离线");
+  assert.equal(t("komariMonitor.onlineSummary", { online: 2, total: 3 }), "2 / 3 在线");
 
   setLanguage("en");
   assert.equal(t("stats.routes"), "Active routes");
   assert.equal(t("stats.nodesOffline", { count: 2 }), "2 node(s) offline");
+  assert.equal(t("komariMonitor.onlineSummary", { online: 2, total: 3 }), "2 / 3 online");
 
   setLanguage(initialLanguage);
 });

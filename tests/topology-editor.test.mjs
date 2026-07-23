@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { AgentRegistry } from "../lib/agent-registry.mjs";
 import { ProbeStore } from "../lib/probe-store.mjs";
 import {
+  mergeThemeSettings,
   sanitizeBranding,
   sanitizeSiteSettings,
   sanitizeThemeSettings,
@@ -111,6 +112,7 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
       darkAccent: "#e4a35f",
     },
     themeSettings: {
+      stopGlobeRotation: false,
       backgroundEnabled: false,
       backgroundType: "image",
       lightBackground: "",
@@ -145,6 +147,7 @@ test("site settings sanitize the public metadata and Beijing theme option", () =
       darkAccent: "#e4a35f",
     },
     themeSettings: {
+      stopGlobeRotation: false,
       backgroundEnabled: false,
       backgroundType: "image",
       lightBackground: "",
@@ -237,6 +240,7 @@ test("visual theme settings whitelist presets and six-digit colors", () => {
 
 test("theme detail settings validate sources and clamp visual controls", () => {
   assert.deepEqual(sanitizeThemeSettings({
+    stop_globe_rotation: true,
     background_enabled: true,
     background_type: "video",
     light_background: "local:light",
@@ -248,6 +252,7 @@ test("theme detail settings validate sources and clamp visual controls", () => {
     glass_border: 140,
     corner_radius: 90,
   }), {
+    stopGlobeRotation: true,
     backgroundEnabled: true,
     backgroundType: "video",
     lightBackground: "local:light",
@@ -262,6 +267,29 @@ test("theme detail settings validate sources and clamp visual controls", () => {
   assert.equal(sanitizeThemeSettings({ lightBackground: "javascript:alert(1)" }).lightBackground, "");
   assert.equal(sanitizeThemeSettings({ darkBackground: "https://user:pass@example.com/a.png" }).darkBackground, "");
   assert.equal(sanitizeThemeSettings({ darkBackground: "/assets/night.webp" }).darkBackground, "/assets/night.webp");
+  assert.equal(sanitizeThemeSettings({ stop_globe_rotation: true, stopGlobeRotation: false }).stopGlobeRotation, false);
+});
+
+test("the globe rotation switch remains writable outside Glassmorphism", () => {
+  const current = {
+    stop_globe_rotation: false,
+    background_enabled: true,
+    glass_blur: 24,
+  };
+  const requested = {
+    stopGlobeRotation: true,
+    backgroundEnabled: false,
+    glassBlur: 4,
+  };
+  const topomari = mergeThemeSettings(current, requested, "topomari");
+  assert.equal(topomari.stopGlobeRotation, true);
+  assert.equal(topomari.backgroundEnabled, true);
+  assert.equal(topomari.glassBlur, 24);
+
+  const glass = mergeThemeSettings(current, requested, "glassmorphism");
+  assert.equal(glass.stopGlobeRotation, true);
+  assert.equal(glass.backgroundEnabled, false);
+  assert.equal(glass.glassBlur, 4);
 });
 
 test("branding keeps separate safe defaults for the browser title and page heading", () => {

@@ -1,7 +1,8 @@
-import { dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui1";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui1";
-import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui1";
-import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.4-ui1";
+import { dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui2";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui2";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui2";
+import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.4-ui2";
+import { renderKomariMonitor } from "./frontend/komari-monitor.js?v=2.8.4-ui2";
 import { applySiteTheme } from "./frontend/site-theme.js";
 import { applyThemeSettings } from "./frontend/theme-background.js";
 import { renderSparkline } from "./sparkline.js";
@@ -27,6 +28,8 @@ const elements = {
   globeCanvas: document.getElementById("route-globe-canvas"),
   globeNodeCount: document.getElementById("route-globe-node-count"),
   globeLinkCount: document.getElementById("route-globe-link-count"),
+  komariNodes: document.getElementById("komari-node-grid"),
+  komariSummary: document.getElementById("komari-monitor-summary"),
 };
 
 let refreshTimer = null;
@@ -265,12 +268,13 @@ function renderSummary(summary, routes) {
 function renderDashboard(dashboard) {
   lastDashboard = dashboard;
   lastError = null;
-  const { meta, summary, routes, nodes } = dashboard;
+  const { meta, summary, routes, nodes, komari } = dashboard;
   document.title = meta.siteName || "TopoMari";
   elements.title.textContent = meta.mainTitle || meta.title || "TopoMari";
   if (elements.description) elements.description.setAttribute("content", meta.description || "");
   applySiteTheme(meta);
-  applyThemeSettings(meta);
+  const themeSettings = applyThemeSettings(meta);
+  routeGlobe?.setRotationStopped(themeSettings.stopGlobeRotation);
   setAutoThemeBeijing(meta.autoThemeBeijing === true);
   elements.sourceChip.dataset.mode = meta.mode;
   const sourceKey = ["live", "hybrid", "demo"].includes(meta.mode) ? meta.mode : "live";
@@ -283,6 +287,7 @@ function renderDashboard(dashboard) {
   elements.updated.textContent = t("updated.at", { time: updatedTime });
   renderSummary(summary, routes || []);
   routeGlobe?.update(routes || []);
+  renderKomariMonitor(komari, { container: elements.komariNodes, summaryElement: elements.komariSummary });
   renderRoutes(routes || []);
   renderLinkHealth(routes || []);
   renderNodes(nodes || []);
@@ -300,6 +305,7 @@ function showError(error) {
     elements.routes.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.snapshot"))}</div>`;
     elements.links.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.linkUnavailable"))}</div>`;
     elements.nodes.innerHTML = `<div class="empty-state">${escapeHtml(t("empty.nodeUnavailable"))}</div>`;
+    renderKomariMonitor(null, { container: elements.komariNodes, summaryElement: elements.komariSummary });
   }
 }
 
