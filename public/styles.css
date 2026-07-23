@@ -362,27 +362,30 @@ h2 {
 
 .komari-node-card {
   min-width: 0;
-  padding: 16px;
+  overflow: hidden;
+  padding: 0;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--surface-inset);
-  transition: border-color 160ms ease, opacity 160ms ease, transform 160ms ease;
+  box-shadow: 0 0 0 3px transparent;
+  transition: border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease, transform 160ms ease;
 }
 
 .komari-node-card:hover {
   border-color: var(--border-strong);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--bg) 22%, transparent);
   transform: translateY(-1px);
 }
 
 .komari-node-card.is-offline {
-  opacity: 0.72;
+  box-shadow: 0 0 0 3px var(--rose-soft);
+  opacity: 0.68;
 }
 
 .komari-node-header,
 .komari-node-identity,
 .komari-node-state,
-.komari-meter-label,
-.komari-load-row {
+.komari-meter-label {
   display: flex;
   align-items: center;
 }
@@ -390,41 +393,30 @@ h2 {
 .komari-node-header {
   min-width: 0;
   justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 13px;
-  border-bottom: 1px solid var(--border);
+  gap: 9px;
+  padding: 12px 14px 7px;
 }
 
 .komari-node-identity {
   min-width: 0;
-  gap: 9px;
+  flex: 1;
+  gap: 10px;
 }
 
-.komari-node-identity > div {
+.komari-node-identity h3 {
   min-width: 0;
-}
-
-.komari-node-identity h3,
-.komari-node-identity p {
   overflow: hidden;
   margin: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.komari-node-identity h3 {
   color: var(--text);
   font-size: 14px;
-  font-weight: 650;
-}
-
-.komari-node-identity p {
-  margin-top: 4px;
-  color: var(--subtle);
-  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
 }
 
 .komari-status-dot {
+  position: relative;
   width: 8px;
   height: 8px;
   flex: 0 0 8px;
@@ -433,9 +425,23 @@ h2 {
   box-shadow: 0 0 0 4px var(--green-soft);
 }
 
+.komari-status-dot::after {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid var(--green);
+  border-radius: inherit;
+  animation: komari-status-ping 2s ease-out infinite;
+  content: "";
+  opacity: 0;
+}
+
 .komari-node-card.is-offline .komari-status-dot {
   background: var(--rose);
   box-shadow: 0 0 0 4px var(--rose-soft);
+}
+
+.komari-node-card.is-offline .komari-status-dot::after {
+  border-color: var(--rose);
 }
 
 .komari-node-card.is-unknown .komari-status-dot {
@@ -443,25 +449,91 @@ h2 {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--unknown) 14%, transparent);
 }
 
+.komari-node-card.is-unknown .komari-status-dot::after {
+  display: none;
+}
+
 .komari-node-state {
   flex: 0 0 auto;
-  gap: 5px;
+  gap: 7px;
   color: var(--subtle);
   font-size: 10px;
 }
 
+.komari-os-mark {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  color: var(--muted);
+}
+
+.komari-os-mark svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.45;
+}
+
+.komari-os-mark.is-windows {
+  color: #1687d9;
+}
+
+.komari-os-mark.is-windows svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.komari-os-mark.is-ubuntu {
+  color: #e95420;
+}
+
+.komari-os-mark.is-ubuntu svg circle:not(:first-child) {
+  fill: currentColor;
+  stroke: none;
+}
+
 .komari-country-flag {
-  min-width: 20px;
-  font-size: 17px;
+  min-width: 18px;
+  font-size: 16px;
   line-height: 1;
   text-align: center;
+}
+
+.komari-node-tags {
+  display: flex;
+  height: 21px;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  padding: 0 14px;
+}
+
+.komari-node-tags span {
+  min-width: 0;
+  overflow: hidden;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 9%, transparent);
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.komari-node-tags span:first-child {
+  flex: 0 0 auto;
 }
 
 .komari-metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 13px 12px;
-  padding: 15px 0;
+  gap: 10px 14px;
+  padding: 11px 14px 0;
 }
 
 .komari-meter {
@@ -472,19 +544,20 @@ h2 {
   min-width: 0;
   justify-content: space-between;
   gap: 6px;
-  margin-bottom: 7px;
+  margin-bottom: 4px;
 }
 
 .komari-meter-label span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .komari-meter-label strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -511,69 +584,159 @@ h2 {
   background: var(--rose);
 }
 
-.komari-load-row {
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 0;
-  border-top: 1px solid var(--border);
-  color: var(--subtle);
-  font-size: 10px;
-}
-
-.komari-load-row strong {
-  color: var(--muted);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.komari-node-footer {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding-top: 11px;
-  border-top: 1px solid var(--border);
-}
-
-.komari-node-footer > span {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 5px;
-  min-width: 0;
-}
-
-.komari-node-footer i {
-  grid-row: 1 / span 2;
-  align-self: center;
-  color: var(--green);
-  font-size: 13px;
-  font-style: normal;
-}
-
-.komari-node-footer .is-download i {
-  color: var(--cyan);
-}
-
-.komari-node-footer strong,
-.komari-node-footer small {
+.komari-meter > small {
+  display: block;
+  min-height: 13px;
   overflow: hidden;
+  margin-top: 4px;
+  color: var(--subtle);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.komari-node-footer strong {
-  color: var(--text);
-  font-size: 10px;
-  font-weight: 650;
+.komari-compact-panels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 11px 14px 0;
 }
 
-.komari-node-footer small {
-  margin-top: 2px;
-  color: var(--subtle);
-  font-size: 9px;
+.komari-compact-panel {
+  display: flex;
+  min-width: 0;
+  min-height: 39px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  padding: 5px 7px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--muted) 5%, transparent);
+}
+
+.komari-compact-panel span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.komari-compact-panel i {
+  display: inline-block;
+  width: 13px;
+  color: inherit;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.komari-compact-panel.is-rate span:first-child {
+  color: var(--green);
+}
+
+.komari-compact-panel.is-rate span:last-child {
+  color: var(--cyan);
+}
+
+.komari-compact-panel.is-load span:first-child {
+  color: var(--text);
+}
+
+.komari-health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 6px 14px 14px;
+}
+
+.komari-health-panel {
+  display: flex;
+  min-width: 0;
+  height: 47px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--muted) 5%, transparent);
+}
+
+.komari-health-panel > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1;
+}
+
+.komari-health-panel strong {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.komari-health-bars {
+  display: flex;
+  height: 18px;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.komari-health-bars i {
+  width: 100%;
+  min-width: 1px;
+  height: 100%;
+  flex: 1 1 0;
+  border-radius: 1px;
+  background: var(--surface-soft);
+}
+
+.komari-health-bars i.is-good {
+  background: var(--green);
+  opacity: 0.72;
+}
+
+.komari-health-bars i.is-warning {
+  background: var(--amber);
+  opacity: 0.82;
+}
+
+.komari-health-bars i.is-bad,
+.komari-health-bars i.is-lost {
+  background: var(--rose);
+  opacity: 0.86;
+}
+
+.komari-health-bars i.is-empty {
+  opacity: 0.55;
+}
+
+@keyframes komari-status-ping {
+  0% {
+    opacity: 0.48;
+    transform: scale(0.55);
+  }
+
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
 }
 
 .komari-node-skeleton {
-  min-height: 250px;
+  min-height: 282px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: linear-gradient(90deg, var(--surface-inset), var(--surface-soft), var(--surface-inset));
@@ -890,7 +1053,12 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
   gap: 18px;
+  min-width: 0;
   margin-top: 18px;
+}
+
+.insight-layout > * {
+  min-width: 0;
 }
 
 .link-health-panel,
@@ -1983,7 +2151,7 @@ h2 {
   }
 
   .link-row {
-    grid-template-columns: minmax(120px, 1fr) 76px 50px 60px;
+    grid-template-columns: minmax(100px, 1fr) 70px 44px 52px;
     gap: 8px;
     padding-inline: 2px;
   }

@@ -1,6 +1,6 @@
-import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui2";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui2";
-import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui2";
+import { adminApi, authApi, dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui5";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui5";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui5";
 import {
   applySiteTheme,
   defaultVisualThemeColors,
@@ -11,7 +11,7 @@ import {
   DEFAULT_THEME_SETTINGS,
   normalizeThemeSettings,
 } from "./frontend/theme-background.js";
-import { initTopologyEditor } from "./editor.js?v=2.8.4-ui2";
+import { initTopologyEditor } from "./editor.js?v=2.8.4-ui5";
 
 const elements = {
   loginGate: document.getElementById("login-gate"),

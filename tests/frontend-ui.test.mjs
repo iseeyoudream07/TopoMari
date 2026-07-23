@@ -12,7 +12,11 @@ import {
   resolveThemeBackgroundSource,
   supportsThemeDetails,
 } from "../public/frontend/theme-background.js";
-import { formatMonitorBytes } from "../public/frontend/komari-monitor.js";
+import {
+  buildKomariNodeHealth,
+  formatMonitorBytes,
+  renderKomariMonitor,
+} from "../public/frontend/komari-monitor.js";
 import { resolveDeploymentTarget } from "../public/frontend/deployment-target.js";
 
 const indexUrl = new URL("../public/index.html", import.meta.url);
@@ -227,6 +231,63 @@ test("formats Komari monitor bytes while preserving zero values", () => {
   assert.equal(formatMonitorBytes(null), "—");
 });
 
+test("renders Glassmorphism node-card hierarchy with real route health history", () => {
+  const routes = [{
+    nodes: [{ id: "client" }, { id: "tokyo", name: "Tokyo" }],
+    edges: [{
+      source_uuid: "tokyo",
+      stats: {
+        latest: 79,
+        loss: 3.4,
+        status: "warning",
+        history: [{ value: 72 }, { value: null }, { value: 79 }],
+      },
+    }],
+  }];
+  const health = buildKomariNodeHealth(routes).get("tokyo");
+  assert.equal(health.latency, 79);
+  assert.equal(health.loss, 3.4);
+  assert.equal(health.history.length, 3);
+
+  const container = { innerHTML: "" };
+  const summaryElement = { dataset: {}, textContent: "" };
+  renderKomariMonitor({
+    state: "ready",
+    summary: { online: 1, total: 1 },
+    nodes: [{
+      id: "tokyo",
+      name: "Tokyo",
+      status: "online",
+      countryCode: "JP",
+      countryName: "Japan",
+      os: "Ubuntu 24.04",
+      arch: "amd64",
+      telemetryAvailable: true,
+      updatedAt: "2026-07-23T02:00:00Z",
+      uptimeSeconds: 432_000,
+      cpu: { usagePercent: 1, cores: 2 },
+      memory: { usagePercent: 34.4, usedBytes: 330_000_000, totalBytes: 1_000_000_000 },
+      disk: { usagePercent: 44.5, usedBytes: 6_500_000_000, totalBytes: 14_700_000_000 },
+      traffic: { usagePercent: 6.3, usedBytes: 129_000_000_000, limitBytes: 2_000_000_000_000 },
+      network: {
+        uploadBytesPerSecond: 10_000,
+        downloadBytesPerSecond: 11_000,
+        totalUploadBytes: 63_400_000_000,
+        totalDownloadBytes: 65_600_000_000,
+      },
+      load: { one: 0.1, five: 0.12, fifteen: 0.09 },
+    }],
+  }, { container, summaryElement, routes });
+
+  assert.match(container.innerHTML, /komari-node-tags/);
+  assert.match(container.innerHTML, /komari-compact-panels/);
+  assert.match(container.innerHTML, /komari-health-grid/);
+  assert.match(container.innerHTML, /(?:在线 5 天|5 d online)/);
+  assert.match(container.innerHTML, /79 ms/);
+  assert.match(container.innerHTML, /3\.4%/);
+  assert.match(container.innerHTML, /is-lost/);
+});
+
 test("selects the next topology node as the private probe target", () => {
   const route = { nodes: [{ id: "relay" }, { id: "exit" }, { id: "internet" }] };
   const inventory = [
@@ -266,6 +327,9 @@ test("ships the compact route-globe overview and Glassmorphism-only detail contr
   assert.match(globe, /requestAnimationFrame/);
   assert.match(globe, /--globe-text/);
   assert.match(globe, /node\?\.countryCode/);
+  assert.match(globe, /NATURAL_EARTH_LAND_DATA/);
+  assert.match(globe, /Natural Earth 1:110m/);
+  assert.doesNotMatch(globe, /LAND_POLYGONS/);
   assert.doesNotMatch(globe, /\bfetch\s*\(/);
   assert.match(adminHtml, /id="theme-settings-lock"/);
   assert.match(adminHtml, /id="theme-settings-controls"/);
