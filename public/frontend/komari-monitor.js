@@ -1,4 +1,4 @@
-import { getLocale, t } from "./i18n.js?v=2.8.4-ui6";
+import { getLocale, t } from "./i18n.js?v=2.8.4-ui7";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -119,7 +119,7 @@ function meter(label, percent, detail, { unlimited = false } = {}) {
   return `
     <div class="komari-meter" data-state="${state}" ${aria}>
       <div class="komari-meter-label"><span>${escapeHtml(label)}</span><strong>${escapeHtml(unlimited && numeric === null ? "∞" : formatPercent(numeric))}</strong></div>
-      <div class="komari-meter-track" aria-hidden="true"><i style="width:${clamped}%"></i></div>
+      <progress class="komari-meter-track" max="100" value="${clamped}" aria-hidden="true"></progress>
       <small>${escapeHtml(detail)}</small>
     </div>`;
 }

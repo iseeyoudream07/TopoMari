@@ -169,19 +169,6 @@ const COUNTRY_LOCATIONS = {
   VE: [6.4238, -66.5897],
 };
 
-const FALLBACK_LOCATIONS = [
-  [35.6762, 139.6503],
-  [1.3521, 103.8198],
-  [22.3193, 114.1694],
-  [-33.8688, 151.2093],
-  [37.3382, -121.8863],
-  [40.7128, -74.006],
-  [50.1109, 8.6821],
-  [51.5072, -0.1276],
-  [25.2048, 55.2708],
-  [-23.5505, -46.6333],
-];
-
 function hashText(value) {
   let hash = 2166136261;
   for (const char of String(value || "node")) {
@@ -312,7 +299,7 @@ function countryCodeFromText(value) {
   return tokens.find((token) => COUNTRY_LOCATIONS[token]) || "";
 }
 
-export function resolveNodeLocation(node, fallbackKey = "") {
+export function resolveNodeLocation(node) {
   const explicit = explicitLocation(node);
   if (explicit) return explicit;
 
@@ -332,8 +319,15 @@ export function resolveNodeLocation(node, fallbackKey = "") {
     return { lat, lng, code: countryCode === "UK" ? "GB" : countryCode };
   }
 
-  const fallback = FALLBACK_LOCATIONS[hashText(`${node?.id || searchable}:${fallbackKey}`) % FALLBACK_LOCATIONS.length];
-  return { lat: fallback[0], lng: fallback[1], code: "", inferred: true };
+  return null;
+}
+
+function routeNodeKey(route, node, index) {
+  const routeId = String(route?.id || "route");
+  const nodeId = String(node?.id || "").trim();
+  if (!nodeId) return `${routeId}:node:${index}`;
+  if (node?.virtual || nodeId === "client" || nodeId === "internet") return `${routeId}:${nodeId}`;
+  return nodeId;
 }
 
 export function buildRouteLinks(routes = []) {
@@ -343,20 +337,24 @@ export function buildRouteLinks(routes = []) {
     const nodes = Array.isArray(route?.nodes) ? route.nodes : [];
     const edges = Array.isArray(route?.edges) ? route.edges : [];
     nodes.forEach((node, index) => {
-      const key = String(node?.id || `${route?.id || "route"}:${index}`);
-      if (!nodeLocations.has(key)) nodeLocations.set(key, resolveNodeLocation(node, route?.id));
+      const key = routeNodeKey(route, node, index);
+      const location = resolveNodeLocation(node);
+      if (location && !nodeLocations.has(key)) nodeLocations.set(key, location);
     });
     edges.forEach((edge, index) => {
       const fromNode = nodes[index];
       const toNode = nodes[index + 1];
       if (!fromNode || !toNode) return;
-      const fromKey = String(fromNode.id || `${route?.id || "route"}:${index}`);
-      const toKey = String(toNode.id || `${route?.id || "route"}:${index + 1}`);
+      const fromKey = routeNodeKey(route, fromNode, index);
+      const toKey = routeNodeKey(route, toNode, index + 1);
+      const fromLocation = nodeLocations.get(fromKey);
+      const toLocation = nodeLocations.get(toKey);
+      if (!fromLocation || !toLocation) return;
       links.push({
         id: `${route?.id || "route"}:${edge?.probe_id || edge?.task?.id || index}`,
         routeId: String(route?.id || ""),
-        from: { ...nodeLocations.get(fromKey), key: fromKey, label: fromNode.name || fromNode.label || fromKey },
-        to: { ...nodeLocations.get(toKey), key: toKey, label: toNode.name || toNode.label || toKey },
+        from: { ...fromLocation, key: fromKey, label: fromNode.name || fromNode.label || fromKey },
+        to: { ...toLocation, key: toKey, label: toNode.name || toNode.label || toKey },
         status: String(edge?.stats?.status || "unknown"),
       });
     });

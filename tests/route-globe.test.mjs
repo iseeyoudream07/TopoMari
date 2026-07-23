@@ -37,12 +37,58 @@ test("resolves explicit and region-derived globe coordinates", () => {
   });
 });
 
-test("keeps unknown node placement deterministic", () => {
-  const first = resolveNodeLocation({ id: "unknown-edge-node" }, "route-a");
-  const second = resolveNodeLocation({ id: "unknown-edge-node" }, "route-a");
-  assert.deepEqual(first, second);
-  assert.equal(first.inferred, true);
-  assert.equal(first.code, "", "fallback coordinates must not invent a country label");
+test("does not invent coordinates for unknown nodes", () => {
+  assert.equal(resolveNodeLocation({ id: "unknown-edge-node" }), null);
+  assert.equal(resolveNodeLocation({ id: "internet", name: "Global Internet" }), null);
+});
+
+test("omits links whose endpoints cannot be located", () => {
+  const links = buildRouteLinks([
+    {
+      id: "partially-located",
+      nodes: [
+        { id: "client", name: "Local network", virtual: true },
+        { id: "tokyo", name: "Tokyo_JP" },
+        { id: "sydney", region: "Sydney, AU" },
+      ],
+      edges: [
+        { probe_id: "client-tokyo", stats: { status: "healthy" } },
+        { probe_id: "tokyo-sydney", stats: { status: "healthy" } },
+      ],
+    },
+  ]);
+
+  assert.equal(links.length, 1);
+  assert.equal(links[0].id, "partially-located:tokyo-sydney");
+  assert.equal(links[0].from.code, "JP");
+  assert.equal(links[0].to.code, "AU");
+});
+
+test("keeps virtual endpoints scoped to their own route", () => {
+  const links = buildRouteLinks([
+    {
+      id: "route-cn",
+      nodes: [
+        { id: "client", virtual: true, latitude: 31.2304, longitude: 121.4737 },
+        { id: "tokyo", name: "Tokyo_JP" },
+      ],
+      edges: [{ probe_id: "cn-tokyo", stats: { status: "healthy" } }],
+    },
+    {
+      id: "route-gb",
+      nodes: [
+        { id: "client", virtual: true, latitude: 51.5072, longitude: -0.1276 },
+        { id: "frankfurt", region: "Frankfurt, DE" },
+      ],
+      edges: [{ probe_id: "gb-frankfurt", stats: { status: "healthy" } }],
+    },
+  ]);
+
+  assert.equal(links.length, 2);
+  assert.equal(links[0].from.key, "route-cn:client");
+  assert.equal(links[1].from.key, "route-gb:client");
+  assert.equal(links[0].from.lat, 31.2304);
+  assert.equal(links[1].from.lat, 51.5072);
 });
 
 test("builds animated globe links from route edge order and status", () => {

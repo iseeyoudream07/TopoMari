@@ -230,7 +230,7 @@ test("formats Komari monitor bytes while preserving zero values", () => {
   assert.equal(formatMonitorBytes(null), "—");
 });
 
-test("renders percentage resource status and distro icons without latency panels", () => {
+test("renders CSP-safe percentage resource status and distro icons without latency panels", async () => {
   const container = { innerHTML: "" };
   const summaryElement = { dataset: {}, textContent: "" };
   const node = {
@@ -265,10 +265,14 @@ test("renders percentage resource status and distro icons without latency panels
       { ...node, id: "alpine", name: "Alpine", os: "Alpine Linux 3.22" },
     ],
   }, { container, summaryElement });
+  const styles = await readFile(stylesUrl, "utf8");
 
   assert.match(container.innerHTML, /komari-node-tags/);
   assert.match(container.innerHTML, /komari-compact-panels/);
   assert.doesNotMatch(container.innerHTML, /komari-health-grid|komari-health-panel/);
+  assert.doesNotMatch(container.innerHTML, /style="width:/);
+  assert.match(container.innerHTML, /<progress class="komari-meter-track" max="100" value="1"/);
+  assert.match(container.innerHTML, /<progress class="komari-meter-track" max="100" value="34\.4"/);
   assert.match(container.innerHTML, /(?:在线 5 天|5 d online)/);
   assert.match(container.innerHTML, />1%<\/strong>/);
   assert.match(container.innerHTML, />34\.4%<\/strong>/);
@@ -276,6 +280,8 @@ test("renders percentage resource status and distro icons without latency panels
   assert.match(container.innerHTML, />6\.3%<\/strong>/);
   assert.match(container.innerHTML, /komari-os-mark is-debian/);
   assert.match(container.innerHTML, /komari-os-mark is-alpine/);
+  assert.match(styles, /\.komari-meter-track::\-webkit-progress-value/);
+  assert.match(styles, /\.komari-meter-track::\-moz-progress-bar/);
 });
 
 test("selects the next topology node as the private probe target", () => {

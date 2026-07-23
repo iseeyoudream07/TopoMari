@@ -1,6 +1,6 @@
-import { editorApi } from "./frontend/api-client.js?v=2.8.4-ui6";
-import { resolveDeploymentTarget } from "./frontend/deployment-target.js?v=2.8.4-ui6";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui6";
+import { editorApi } from "./frontend/api-client.js?v=2.8.4-ui7";
+import { resolveDeploymentTarget } from "./frontend/deployment-target.js?v=2.8.4-ui7";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui7";
 
 const elements = {
   toggle: document.getElementById("manager-toggle"),
