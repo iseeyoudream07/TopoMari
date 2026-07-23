@@ -1,8 +1,8 @@
-import { dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui5";
-import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui5";
-import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui5";
-import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.4-ui5";
-import { renderKomariMonitor } from "./frontend/komari-monitor.js?v=2.8.4-ui5";
+import { dashboardApi } from "./frontend/api-client.js?v=2.8.4-ui6";
+import { getLocale, t } from "./frontend/i18n.js?v=2.8.4-ui6";
+import { initPreferences, setAutoThemeBeijing } from "./frontend/preferences.js?v=2.8.4-ui6";
+import { createRouteGlobe } from "./frontend/route-globe.js?v=2.8.4-ui6";
+import { renderKomariMonitor } from "./frontend/komari-monitor.js?v=2.8.4-ui6";
 import { applySiteTheme } from "./frontend/site-theme.js";
 import { applyThemeSettings } from "./frontend/theme-background.js";
 import { renderSparkline } from "./sparkline.js";
@@ -287,7 +287,7 @@ function renderDashboard(dashboard) {
   elements.updated.textContent = t("updated.at", { time: updatedTime });
   renderSummary(summary, routes || []);
   routeGlobe?.update(routes || []);
-  renderKomariMonitor(komari, { container: elements.komariNodes, summaryElement: elements.komariSummary, routes: routes || [] });
+  renderKomariMonitor(komari, { container: elements.komariNodes, summaryElement: elements.komariSummary });
   renderRoutes(routes || []);
   renderLinkHealth(routes || []);
   renderNodes(nodes || []);

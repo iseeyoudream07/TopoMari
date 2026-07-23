@@ -496,6 +496,22 @@ h2 {
   stroke: none;
 }
 
+.komari-os-mark.is-debian {
+  color: #d70a53;
+}
+
+.komari-os-mark.is-debian svg {
+  stroke-width: 1.55;
+}
+
+.komari-os-mark.is-alpine {
+  color: #0d8bcb;
+}
+
+.komari-os-mark.is-alpine svg {
+  stroke-width: 1.35;
+}
+
 .komari-country-flag {
   min-width: 18px;
   font-size: 16px;
@@ -601,7 +617,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  margin: 11px 14px 0;
+  margin: 11px 14px 14px;
 }
 
 .komari-compact-panel {
@@ -649,79 +665,6 @@ h2 {
   color: var(--text);
 }
 
-.komari-health-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin: 6px 14px 14px;
-}
-
-.komari-health-panel {
-  display: flex;
-  min-width: 0;
-  height: 47px;
-  flex-direction: column;
-  gap: 6px;
-  padding: 7px 8px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--muted) 5%, transparent);
-}
-
-.komari-health-panel > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 10.5px;
-  line-height: 1;
-}
-
-.komari-health-panel strong {
-  overflow: hidden;
-  color: var(--text);
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.komari-health-bars {
-  display: flex;
-  height: 18px;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.komari-health-bars i {
-  width: 100%;
-  min-width: 1px;
-  height: 100%;
-  flex: 1 1 0;
-  border-radius: 1px;
-  background: var(--surface-soft);
-}
-
-.komari-health-bars i.is-good {
-  background: var(--green);
-  opacity: 0.72;
-}
-
-.komari-health-bars i.is-warning {
-  background: var(--amber);
-  opacity: 0.82;
-}
-
-.komari-health-bars i.is-bad,
-.komari-health-bars i.is-lost {
-  background: var(--rose);
-  opacity: 0.86;
-}
-
-.komari-health-bars i.is-empty {
-  opacity: 0.55;
-}
-
 @keyframes komari-status-ping {
   0% {
     opacity: 0.48;
@@ -736,7 +679,7 @@ h2 {
 }
 
 .komari-node-skeleton {
-  min-height: 282px;
+  min-height: 220px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: linear-gradient(90deg, var(--surface-inset), var(--surface-soft), var(--surface-inset));

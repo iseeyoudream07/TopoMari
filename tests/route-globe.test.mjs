@@ -30,6 +30,11 @@ test("resolves explicit and region-derived globe coordinates", () => {
     lng: 78.9629,
     code: "IN",
   });
+  assert.deepEqual(resolveNodeLocation({ id: "mainland", label: "China mainland" }), {
+    lat: 35.8617,
+    lng: 104.1954,
+    code: "CN",
+  });
 });
 
 test("keeps unknown node placement deterministic", () => {
@@ -37,6 +42,7 @@ test("keeps unknown node placement deterministic", () => {
   const second = resolveNodeLocation({ id: "unknown-edge-node" }, "route-a");
   assert.deepEqual(first, second);
   assert.equal(first.inferred, true);
+  assert.equal(first.code, "", "fallback coordinates must not invent a country label");
 });
 
 test("builds animated globe links from route edge order and status", () => {

@@ -36,6 +36,7 @@ const REGION_LOCATIONS = [
   { pattern: /(?:北京|beijing)/i, lat: 39.9042, lng: 116.4074, code: "CN" },
   { pattern: /(?:上海|shanghai)/i, lat: 31.2304, lng: 121.4737, code: "CN" },
   { pattern: /(?:广州|guangzhou)/i, lat: 23.1291, lng: 113.2644, code: "CN" },
+  { pattern: /(?:中国(?:大陆|内地)?|(?:^|[^a-z])(?:china(?:[\s_-]*mainland)?|mainland[\s_-]*china)(?:$|[^a-z]))/i, lat: 35.8617, lng: 104.1954, code: "CN" },
   { pattern: /(?:悉尼|sydney)/i, lat: -33.8688, lng: 151.2093, code: "AU" },
   { pattern: /(?:墨尔本|melbourne)/i, lat: -37.8136, lng: 144.9631, code: "AU" },
   { pattern: /(?:洛杉矶|los\s*angeles|\bla\b)/i, lat: 34.0522, lng: -118.2437, code: "US" },
@@ -169,16 +170,16 @@ const COUNTRY_LOCATIONS = {
 };
 
 const FALLBACK_LOCATIONS = [
-  [35.6762, 139.6503, "JP"],
-  [1.3521, 103.8198, "SG"],
-  [22.3193, 114.1694, "HK"],
-  [-33.8688, 151.2093, "AU"],
-  [37.3382, -121.8863, "US"],
-  [40.7128, -74.006, "US"],
-  [50.1109, 8.6821, "DE"],
-  [51.5072, -0.1276, "GB"],
-  [25.2048, 55.2708, "AE"],
-  [-23.5505, -46.6333, "BR"],
+  [35.6762, 139.6503],
+  [1.3521, 103.8198],
+  [22.3193, 114.1694],
+  [-33.8688, 151.2093],
+  [37.3382, -121.8863],
+  [40.7128, -74.006],
+  [50.1109, 8.6821],
+  [51.5072, -0.1276],
+  [25.2048, 55.2708],
+  [-23.5505, -46.6333],
 ];
 
 function hashText(value) {
@@ -332,7 +333,7 @@ export function resolveNodeLocation(node, fallbackKey = "") {
   }
 
   const fallback = FALLBACK_LOCATIONS[hashText(`${node?.id || searchable}:${fallbackKey}`) % FALLBACK_LOCATIONS.length];
-  return { lat: fallback[0], lng: fallback[1], code: fallback[2], inferred: true };
+  return { lat: fallback[0], lng: fallback[1], code: "", inferred: true };
 }
 
 export function buildRouteLinks(routes = []) {

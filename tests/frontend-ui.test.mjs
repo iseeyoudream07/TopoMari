@@ -13,7 +13,6 @@ import {
   supportsThemeDetails,
 } from "../public/frontend/theme-background.js";
 import {
-  buildKomariNodeHealth,
   formatMonitorBytes,
   renderKomariMonitor,
 } from "../public/frontend/komari-monitor.js";
@@ -231,61 +230,52 @@ test("formats Komari monitor bytes while preserving zero values", () => {
   assert.equal(formatMonitorBytes(null), "—");
 });
 
-test("renders Glassmorphism node-card hierarchy with real route health history", () => {
-  const routes = [{
-    nodes: [{ id: "client" }, { id: "tokyo", name: "Tokyo" }],
-    edges: [{
-      source_uuid: "tokyo",
-      stats: {
-        latest: 79,
-        loss: 3.4,
-        status: "warning",
-        history: [{ value: 72 }, { value: null }, { value: 79 }],
-      },
-    }],
-  }];
-  const health = buildKomariNodeHealth(routes).get("tokyo");
-  assert.equal(health.latency, 79);
-  assert.equal(health.loss, 3.4);
-  assert.equal(health.history.length, 3);
-
+test("renders percentage resource status and distro icons without latency panels", () => {
   const container = { innerHTML: "" };
   const summaryElement = { dataset: {}, textContent: "" };
+  const node = {
+    id: "tokyo",
+    name: "Tokyo",
+    status: "online",
+    countryCode: "JP",
+    countryName: "Japan",
+    os: "Ubuntu 24.04",
+    arch: "amd64",
+    telemetryAvailable: true,
+    updatedAt: "2026-07-23T02:00:00Z",
+    uptimeSeconds: 432_000,
+    cpu: { usagePercent: 1, cores: 2 },
+    memory: { usagePercent: 34.4, usedBytes: 330_000_000, totalBytes: 1_000_000_000 },
+    disk: { usagePercent: 44.5, usedBytes: 6_500_000_000, totalBytes: 14_700_000_000 },
+    traffic: { usagePercent: 6.3, usedBytes: 129_000_000_000, limitBytes: 2_000_000_000_000 },
+    network: {
+      uploadBytesPerSecond: 10_000,
+      downloadBytesPerSecond: 11_000,
+      totalUploadBytes: 63_400_000_000,
+      totalDownloadBytes: 65_600_000_000,
+    },
+    load: { one: 0.1, five: 0.12, fifteen: 0.09 },
+  };
   renderKomariMonitor({
     state: "ready",
-    summary: { online: 1, total: 1 },
-    nodes: [{
-      id: "tokyo",
-      name: "Tokyo",
-      status: "online",
-      countryCode: "JP",
-      countryName: "Japan",
-      os: "Ubuntu 24.04",
-      arch: "amd64",
-      telemetryAvailable: true,
-      updatedAt: "2026-07-23T02:00:00Z",
-      uptimeSeconds: 432_000,
-      cpu: { usagePercent: 1, cores: 2 },
-      memory: { usagePercent: 34.4, usedBytes: 330_000_000, totalBytes: 1_000_000_000 },
-      disk: { usagePercent: 44.5, usedBytes: 6_500_000_000, totalBytes: 14_700_000_000 },
-      traffic: { usagePercent: 6.3, usedBytes: 129_000_000_000, limitBytes: 2_000_000_000_000 },
-      network: {
-        uploadBytesPerSecond: 10_000,
-        downloadBytesPerSecond: 11_000,
-        totalUploadBytes: 63_400_000_000,
-        totalDownloadBytes: 65_600_000_000,
-      },
-      load: { one: 0.1, five: 0.12, fifteen: 0.09 },
-    }],
-  }, { container, summaryElement, routes });
+    summary: { online: 3, total: 3 },
+    nodes: [
+      node,
+      { ...node, id: "debian", name: "Debian", os: "Debian GNU/Linux 13" },
+      { ...node, id: "alpine", name: "Alpine", os: "Alpine Linux 3.22" },
+    ],
+  }, { container, summaryElement });
 
   assert.match(container.innerHTML, /komari-node-tags/);
   assert.match(container.innerHTML, /komari-compact-panels/);
-  assert.match(container.innerHTML, /komari-health-grid/);
+  assert.doesNotMatch(container.innerHTML, /komari-health-grid|komari-health-panel/);
   assert.match(container.innerHTML, /(?:在线 5 天|5 d online)/);
-  assert.match(container.innerHTML, /79 ms/);
-  assert.match(container.innerHTML, /3\.4%/);
-  assert.match(container.innerHTML, /is-lost/);
+  assert.match(container.innerHTML, />1%<\/strong>/);
+  assert.match(container.innerHTML, />34\.4%<\/strong>/);
+  assert.match(container.innerHTML, />44\.5%<\/strong>/);
+  assert.match(container.innerHTML, />6\.3%<\/strong>/);
+  assert.match(container.innerHTML, /komari-os-mark is-debian/);
+  assert.match(container.innerHTML, /komari-os-mark is-alpine/);
 });
 
 test("selects the next topology node as the private probe target", () => {

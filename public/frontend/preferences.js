@@ -1,4 +1,4 @@
-import { getLanguage, initI18n, setLanguage, t } from "./i18n.js?v=2.8.4-ui5";
+import { getLanguage, initI18n, setLanguage, t } from "./i18n.js?v=2.8.4-ui6";
 import { nextBeijingSolarTransition, themeForBeijingInstant } from "./solar-theme.js";
 import { syncSiteThemeColor } from "./site-theme.js";
 
