@@ -5,7 +5,7 @@
 ## 1. 当前状态快照
 
 - 项目：TopoMari，自托管 Komari 链路拓扑面板。
-- 环境传入的旧目录名是 `/Users/iseeyoudream/Documents/komari-topology-dashboard`，实际解析后的本地检出路径是 `/Users/iseeyoudream/Documents/TopoMari`。
+- 环境传入的旧目录名是*，实际解析后的本地检出路径是*。
 - 当前版本：`2.8.2`，以 `package.json` 和 `CHANGELOG.md` 为准。
 - 远端：`https://github.com/iseeyoudream07/TopoMari.git`。
 - 当前本地分支：`agent/topomari-2-8-2-komari-geoip`，HEAD 为 `730a779`。
